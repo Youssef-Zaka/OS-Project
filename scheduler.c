@@ -17,8 +17,13 @@ int main(int argc, char * argv[])
         exit(-1);
     }
 
+    //Array Size , or number of expected processes.
+    int ProcNum = atoi(argv[1]);
+    // printf("Size Sent to Scheduler is : %d\n", ProcNum);
+    
+    MyProcess PCB [ProcNum];
 
-    while (1)
+    while (true)
     {
         MyProcess proc;
         recval = msgrcv(msgqid_id, &proc ,sizeof(proc), 0 ,!IPC_NOWAIT);
@@ -26,7 +31,11 @@ int main(int argc, char * argv[])
         if(recval == -1)
             perror("Error in receive");
         else
+        {
+            PCB[proc.ID - 1] = proc;
             printf("ID is %d\n",proc.ID);
+            // printf("PCB ID is %d\n",PCB[proc.ID - 1].ID);
+        }
     }
     
 

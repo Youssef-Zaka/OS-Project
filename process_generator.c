@@ -2,7 +2,7 @@
 
 void clearResources(int);
 
-
+int msgqid_id;
 
 int main(int argc, char *argv[])
 {
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     int ChosenAlgorithm = 0;
     printf("1-HPF   2-SRTN  3-RR \n");
     printf("Choose The Desired Scheduling Algorith(1,2,3):  ");
-
+    scanf("%d", &ChosenAlgorithm);
     while (ChosenAlgorithm != 1 && ChosenAlgorithm != 2 && ChosenAlgorithm != 3)
     {
         printf("Incorrect input, please choose between 1 ,2 and 3: ");
@@ -71,19 +71,23 @@ int main(int argc, char *argv[])
         if (isFailure)
         {
             printf("Error No: %d", errno);
+            exit(-1);
         }
     }
     // fork a child, then call execv to replace this child with a scheduler process
     pid = fork();
     if (pid == 0)
     {
-        //execv argv , a null terminated list of strings
-        char n = (char)count;
-        char *arguments[] = {"scheduler.out" ,NULL};
+        // execv argv , a null terminated list of strings
+        char n[GetDigitsOfInt(count)];
+        sprintf(n, "%d", count);
+        char *arguments[] = {"scheduler.out",n,NULL};
+        // printf("\nArg sent is : %s", n);
         int isFailure = execv("scheduler.out", arguments);
         if (isFailure)
         {
-            printf("Error No: %d", errno);
+            printf("Error No: %d \n", errno);
+            exit(-1);
         }
     }
 
@@ -98,7 +102,7 @@ int main(int argc, char *argv[])
     // 5. Create a data structure for processes and provide it with its parameters.
     // 6. Send the information to the scheduler at the appropriate time.
 
-    int msgqid_id , sendval, recval;
+    int sendval, recval;
 
     msgqid_id = msgget(qid , 0644 | IPC_CREAT);
 
@@ -134,7 +138,7 @@ int main(int argc, char *argv[])
 void clearResources(int signum)
 {
     //TODO Clears all resources in case of interruption
-    msgctl(qid , IPC_RMID, (struct msqid_ds *)0);
+    msgctl(msgqid_id , IPC_RMID, (struct msqid_ds *)0);
     destroyClk(true);
     exit(0);
 }
