@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <signal.h>
 
+
+#include <errno.h>
+
 typedef short bool;
 #define true 1
 #define false 1
@@ -65,3 +68,15 @@ void destroyClk(bool terminateAll)
         killpg(getpgrp(), SIGINT);
     }
 }
+
+
+
+//create Data structure for process
+
+typedef struct MyProcess
+{
+    int ID;
+    int Arrival;
+    int RunTime;
+    int Priority;
+}MyProcess;
