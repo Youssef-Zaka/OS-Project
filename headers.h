@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-
+#include <math.h>
 
 #include <errno.h>
 
@@ -19,6 +19,8 @@ typedef short bool;
 #define false 1
 
 #define SHKEY 300
+
+#define qid 60
 
 
 ///==============================
@@ -80,3 +82,11 @@ typedef struct MyProcess
     int RunTime;
     int Priority;
 }MyProcess;
+
+struct msgbuff
+{
+    long mtype;
+    MyProcess process;
+};
+
+
