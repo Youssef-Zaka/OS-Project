@@ -14,8 +14,6 @@
 
 #include <errno.h>
 
-
-
 typedef short bool;
 #define true 1
 #define false 0
@@ -102,3 +100,104 @@ int GetDigitsOfInt(int i)
     }  
     return digitCount;  
 }  
+
+//https://github.com/corbosiny/C-Tutorials
+const int MAX_PRIORITY = 999;
+
+typedef struct Qnode
+{
+
+  MyProcess process;
+  struct Qnode *next;
+  int prty;
+
+} Qnode, *QnodePtr;
+
+typedef struct Queue
+{
+
+    QnodePtr top;
+    QnodePtr tail;
+
+} Queuetype, *Queue;
+
+Queue initQueue();
+int isEmpty(Queue q);
+void enqueue(Queue q, MyProcess process);
+void pEnqueue(Queue q, MyProcess process, int prty);
+QnodePtr dequeue(Queue q);
+
+
+Queue initQueue()
+{
+    Queue newQueue = malloc(sizeof(Queuetype));
+    newQueue->top = NULL;
+    newQueue->tail = NULL;
+    return newQueue;
+
+}
+
+int isEmpty(Queue q)
+{return q->top == NULL;}
+
+void enqueue(Queue q, MyProcess process)
+{
+    QnodePtr newNode = malloc(sizeof(Qnode));
+    newNode->process = process;
+    newNode->next = NULL;
+    newNode->prty = MAX_PRIORITY;
+
+    if(isEmpty(q)) {q->top = newNode; q->tail = newNode;}
+    else
+    {
+            q->tail->next = newNode;
+            q->tail = newNode;
+
+    }
+
+}
+
+void pEnqueue(Queue q, MyProcess process, int prty)
+{
+
+    QnodePtr newNode = malloc(sizeof(Qnode));
+    newNode->process = process;
+    newNode->next = NULL;
+    newNode->prty = prty;
+
+    if(isEmpty(q)) {q->top = newNode; q->tail = newNode;}
+    else
+    {
+            q->tail->next = newNode;
+            q->tail = newNode;
+
+            QnodePtr temp = q->top;
+            if(temp->prty < newNode->prty)
+            {
+                q->top = newNode;
+                newNode->next = temp;
+                return;
+
+            }
+
+            while(temp->next != NULL && temp->next->prty > newNode->prty)
+                {temp = temp->next;}
+
+            if(temp->next != NULL) {newNode->next = temp->next;}
+            temp->next = newNode;
+
+    }
+
+}
+
+QnodePtr dequeue(Queue q)
+{
+
+    if(isEmpty(q)) {printf("Queue is already empty, no nodes to remove"); return NULL;}
+    QnodePtr temp = q->top;
+    MyProcess tempNum = q->top->process;
+    q->top = q->top->next;
+    free(temp);
+    return temp;
+
+}

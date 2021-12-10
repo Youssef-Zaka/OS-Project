@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     MyProcess procs[count];
 
     rewind(fp);
-    fscanf(fp, "%*[^\n]\n");
+    fscanf(fp, "%*[^\n]\n"); //skip first line
 
     for (int i = 0; i < count; i++)
     {
@@ -81,7 +81,9 @@ int main(int argc, char *argv[])
         // execv argv , a null terminated list of strings
         char n[GetDigitsOfInt(count)];
         sprintf(n, "%d", count);
-        char *arguments[] = {"scheduler.out",n,NULL};
+        char ca[GetDigitsOfInt(ChosenAlgorithm)];
+        sprintf(ca, "%d", ChosenAlgorithm);
+        char *arguments[] = {"scheduler.out",n,ca,NULL};
         // printf("\nArg sent is : %s", n);
         int isFailure = execv("scheduler.out", arguments);
         if (isFailure)

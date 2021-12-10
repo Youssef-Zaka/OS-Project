@@ -19,22 +19,25 @@ int main(int argc, char * argv[])
 
     //Array Size , or number of expected processes.
     int ProcNum = atoi(argv[1]);
+    int ChosenAlgorithm = atoi(argv[2]);
+    //printf("(scheduler) CA is %d\n",ChosenAlgorithm);
     // printf("Size Sent to Scheduler is : %d\n", ProcNum);
     
     MyProcess PCB [ProcNum];
 
+    Queue pq = initQueue();
+
     while (true)
     {
         MyProcess proc;
-        recval = msgrcv(msgqid_id, &proc ,sizeof(proc), 0 ,!IPC_NOWAIT);
+        recval = msgrcv(msgqid_id, &proc ,sizeof(proc), 0 ,IPC_NOWAIT);
 
-        if(recval == -1)
-            perror("Error in receive");
-        else
+        if(recval != -1) 
         {
+            pEnqueue(pq, proc, proc.RunTime);
             PCB[proc.ID - 1] = proc;
             printf("ID is %d\n",proc.ID);
-            // printf("PCB ID is %d\n",PCB[proc.ID - 1].ID);
+            //printf("PCB ID is %d\n",PCB[proc.ID - 1].ID);
         }
     }
     
