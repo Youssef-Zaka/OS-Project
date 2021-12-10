@@ -6,7 +6,6 @@ int main(int argc, char * argv[])
     initClk();
 
 
-    key_t key_id;
     int msgqid_id , recval ,sendval;
 
     msgqid_id = msgget(qid , 0644 | IPC_CREAT);
@@ -26,18 +25,23 @@ int main(int argc, char * argv[])
     MyProcess PCB [ProcNum];
 
     Queue pq = initQueue();
-
+     MyProcess proc;
     while (true)
     {
-        MyProcess proc;
+       
         recval = msgrcv(msgqid_id, &proc ,sizeof(proc), 0 ,IPC_NOWAIT);
 
         if(recval != -1) 
         {
             pEnqueue(pq, proc, proc.RunTime);
             PCB[proc.ID - 1] = proc;
-            printf("ID is %d\n",proc.ID);
-            //printf("PCB ID is %d\n",PCB[proc.ID - 1].ID);
+            // printf("ID is %d\n",proc.ID);
+            // printf("PCB ID is %d\n",PCB[proc.ID - 1].ID);
+            // if (proc.ID > 1)
+            // {
+            //      printf("PCB ID is %d\n",PCB[proc.ID - 2].ID);
+            // }
+            
         }
     }
     

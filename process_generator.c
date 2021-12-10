@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     int Iteration =0;
     while(Iteration < count)
     {
-        while (procs[Iteration].Arrival == x && Iteration < count)
+        while (Iteration < count && procs[Iteration].Arrival == x)
         {
             printf("Clock is %d\n",x);
             sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , !IPC_NOWAIT);
@@ -127,11 +127,13 @@ int main(int argc, char *argv[])
             Iteration++;   
         }
         x = getClk();
-        
+    }
+
+    while (true)
+    {
+        //wait till scheduler kills it
     }
     
-    
-
 
     // 7. Clear clock resources
     destroyClk(true);
