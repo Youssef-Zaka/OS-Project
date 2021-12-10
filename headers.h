@@ -10,15 +10,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-
+#include <math.h>
 
 #include <errno.h>
 
+
+
 typedef short bool;
 #define true 1
-#define false 1
+#define false 0
 
 #define SHKEY 300
+
+#define qid 60
 
 
 ///==============================
@@ -80,3 +84,21 @@ typedef struct MyProcess
     int RunTime;
     int Priority;
 }MyProcess;
+
+struct msgbuff
+{
+    long mtype;
+    MyProcess process;
+};
+
+
+int GetDigitsOfInt(int i)  
+{  
+    int digitCount=0;  
+    while(i!=0)  
+    {  
+        i=i/10;  
+        digitCount++;  
+    }  
+    return digitCount;  
+}  
