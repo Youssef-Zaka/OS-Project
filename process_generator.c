@@ -7,6 +7,7 @@ int msgqid_id;
 int main(int argc, char *argv[])
 {
     signal(SIGINT, clearResources);
+    signal(SIGCHLD, clearResources);
     // TODO Initialization
     // 1. Read the input files.
     FILE *fp;
@@ -58,32 +59,39 @@ int main(int argc, char *argv[])
         printf("Incorrect input, please choose between 1 ,2 and 3: ");
         scanf("%d", &ChosenAlgorithm);
     }
-    printf("\n");
+    printf("Chosen Algo was : %d \n", ChosenAlgorithm);
+
+    int Quantum = 0;
+    if (ChosenAlgorithm == 3)
+    {
+        printf("Enter Round Robin Quantum:   ");
+        
+        scanf("%d", &Quantum);
+        while (Quantum <= 0)
+        {
+            printf("Incorrect input, please choose a positive integer:  ");
+            scanf("%d", &Quantum);
+        }
+        printf("\n");
+    }
+    
+    
 
     // 3. Initiate and create the scheduler and clock processes.
-    // fork a child, then call execv to replace this child with a clock process
+    // fork a child, then call execv to reChosenAlgorithmplace this child with a clock process
+    
+    // fork a child, then call execv to replace this child with a scheduler process
     int pid = fork();
     if (pid == 0)
     {
-        //execv argv , a null terminated list of strings
-        char *arguments[] = {"clk.out", NULL};
-        int isFailure = execv("clk.out", arguments);
-        if (isFailure)
-        {
-            printf("Error No: %d", errno);
-            exit(-1);
-        }
-    }
-    // fork a child, then call execv to replace this child with a scheduler process
-    pid = fork();
-    if (pid == 0)
-    {
         // execv argv , a null terminated list of strings
-        char n[GetDigitsOfInt(count)];
+        char n[20];
         sprintf(n, "%d", count);
-        char ca[GetDigitsOfInt(ChosenAlgorithm)];
+        char ca[20];
         sprintf(ca, "%d", ChosenAlgorithm);
-        char *arguments[] = {"scheduler.out",n,ca,NULL};
+        char QuantumString[GetDigitsOfInt(Quantum)];
+        sprintf(QuantumString, "%d", Quantum);
+        char *arguments[] = {"scheduler.out",n,ca,QuantumString,NULL};
         // printf("\nArg sent is : %s", n);
         int isFailure = execv("scheduler.out", arguments);
         if (isFailure)
@@ -92,18 +100,6 @@ int main(int argc, char *argv[])
             exit(-1);
         }
     }
-
-    // 4. Use this function after creating the clock process to initialize clock
-    initClk();
-    // To get time use this
-    int x = getClk();
-    printf("current time is %d\n", x);
-
-    
-    // TODO Generation Main Loop
-    // 5. Create a data structure for processes and provide it with its parameters.
-    // 6. Send the information to the scheduler at the appropriate time.
-
     int sendval, recval;
 
     msgqid_id = msgget(qid , 0644 | IPC_CREAT);
@@ -115,28 +111,49 @@ int main(int argc, char *argv[])
     }
 
     int Iteration =0;
+
+    // 4. Use this function after creating the clock process to initialize clock
+    pid = fork();
+    if (pid == 0)
+    {
+        //execv argv , a null terminated list of strings
+        char *arguments[] = {"clk.out", NULL};
+        int isFailure = execv("clk.out", arguments);
+        if (isFailure)
+        {
+            printf("Error No: %d", errno);
+            exit(-1);
+        }
+    }
+    initClk();
+    // To get time use this
+    int x = getClk() ;
+    printf("current time is %d\n", x);
+
+    
+    // TODO Generation Main Loop
+    // 5. Create a data structure for processes and provide it with its parameters.
+    // 6. Send the information to the scheduler at the appropriate time.
+
+ 
     while(Iteration < count)
     {
         while (Iteration < count && procs[Iteration].Arrival == x)
         {
-            printf("Clock is %d\n",x);
-            sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , !IPC_NOWAIT);
+            // printf("Clock is %d\n",x);
+            sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , IPC_NOWAIT);
 
             if(sendval == -1)
                 perror("Error in send");
             Iteration++;   
         }
+        sleep(1);
         x = getClk();
     }
-
-    while (true)
-    {
-        //wait till scheduler kills it
-    }
-    
-
+    sleep(__INT_MAX__);
     // 7. Clear clock resources
-    destroyClk(true);
+    clearResources(0);
+    return(0);
 }
 
 void clearResources(int signum)

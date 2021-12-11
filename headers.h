@@ -73,6 +73,13 @@ void destroyClk(bool terminateAll)
 
 
 
+typedef enum status {
+    NotCreated,
+    Ready,
+    Running,
+    Blocked,
+    Finished
+}status;
 //create Data structure for process
 
 typedef struct MyProcess
@@ -81,6 +88,9 @@ typedef struct MyProcess
     int Arrival;
     int RunTime;
     int Priority;
+    int RemainingTime;
+    status Status;
+    int PID;
 }MyProcess;
 
 struct msgbuff
@@ -107,7 +117,7 @@ const int MAX_PRIORITY = 999;
 typedef struct Qnode
 {
 
-  MyProcess process;
+  MyProcess * process;
   struct Qnode *next;
   int prty;
 
@@ -123,9 +133,9 @@ typedef struct Queue
 
 Queue initQueue();
 int isEmpty(Queue q);
-void enqueue(Queue q, MyProcess process);
-void pEnqueue(Queue q, MyProcess process, int prty);
-MyProcess dequeue(Queue q);
+void enqueue(Queue q, MyProcess * process);
+void pEnqueue(Queue q, MyProcess * process, int prty);
+MyProcess * dequeue(Queue q);
 
 
 Queue initQueue()
@@ -140,7 +150,7 @@ Queue initQueue()
 int isEmpty(Queue q)
 {return q->top == NULL;}
 
-void enqueue(Queue q, MyProcess process)
+void enqueue(Queue q, MyProcess * process)
 {
     QnodePtr newNode = malloc(sizeof(Qnode));
     newNode->process = process;
@@ -157,7 +167,7 @@ void enqueue(Queue q, MyProcess process)
 
 }
 
-void pEnqueue(Queue q, MyProcess process, int prty)
+void pEnqueue(Queue q, MyProcess * process, int prty)
 {
 
     QnodePtr newNode = malloc(sizeof(Qnode));
@@ -190,10 +200,10 @@ void pEnqueue(Queue q, MyProcess process, int prty)
 
 }
 
-MyProcess dequeue(Queue q)
+MyProcess * dequeue(Queue q)
 {
     QnodePtr temp = q->top;
-    MyProcess tempNum = q->top->process;
+    MyProcess * tempNum = q->top->process;
     q->top = q->top->next;
     free(temp);
     return tempNum;
@@ -210,3 +220,5 @@ MyProcess dequeue(Queue q)
 //     return temp;
 
 // }
+
+
