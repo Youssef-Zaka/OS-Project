@@ -4,21 +4,22 @@ int QTR = -1;
 
 Queue Q;
 Queue RRQ;
-int signalPid = 0;
+int signalPid = -1;
 int Index = 1;
 int countFinished = 0;
 int countRecieved = 0;
 int ProcNum;
 void EndOfProcess(int sig, siginfo_t *info, void *context)
 {
-    signalPid = 0;
-    if (info->si_code == CLD_EXITED)
+    signalPid = info->si_pid;
+    countFinished++;
+    printf("Count finished is %d \n", countFinished);
+    if (countFinished == ProcNum)
     {
-        signalPid = info->si_pid;
-        countFinished++;
-        printf("Count finished is %d \n", countFinished);
+        printf("scheduler EXITING\n");
+        destroyClk(true);
+        exit(0);
     }
-
 }
 int main(int argc, char *argv[])
 {
@@ -42,7 +43,6 @@ int main(int argc, char *argv[])
     ProcNum = atoi(argv[1]);
     int ChosenAlgorithm = atoi(argv[2]);
     int Quantum = atoi(argv[3]);
-    Quantum++;
     // printf("(scheduler) CA is %d\n",ChosenAlgorithm);
     printf("ProcNum Sent to Scheduler is : %d\n", ProcNum);
 
@@ -54,19 +54,6 @@ int main(int argc, char *argv[])
     initClk();
     while (true)
     {
-        if (countFinished == ProcNum)
-        {
-
-            //Printing logic
-
-            printf("scheduler EXITING\n");
-            destroyClk(true);
-            for (int i = 0; i < ProcNum; i++)
-            {
-                free(PCB[i]);
-            }
-            exit(0);
-        }
         recval = -1;
         if (countRecieved < ProcNum)
         {
@@ -98,11 +85,11 @@ int main(int argc, char *argv[])
             case 3:
                 if (isEmpty(Q))
                 {
-                    enqueue(RRQ, P);
+                    enqueue(RRQ, &proc);
                 }
                 else
                 {
-                    enqueue(Q, P);
+                    enqueue(Q, &proc);
                 }
                 break;
 
@@ -179,87 +166,90 @@ int main(int argc, char *argv[])
             }
             if (!isEmpty(Q))
             {
-                MyProcess *p = dequeue(Q);
-                Index = p->ID;
-                if (p->Status == NotCreated)
+                if (QTR == -1)
                 {
-                    printf("Forking ID %d at time %d\n", Index, getClk());
-                    p->RemainingTime = p->RunTime;
-                    p->Status = Running;
-                    int pid = fork();
-                    p->PID = pid;
-                    if (pid == 0)
+                    QTR = getClk() + Quantum;
+                    MyProcess *p = dequeue(Q);
+                    Index = p->ID;
+                    if (p->Status == NotCreated)
                     {
-                        char SchedulerPid[20];
-                        char RemainingTime[20];
-                        char ProcessID[20];
-                        sprintf(SchedulerPid, "%d", getpid());
-                        sprintf(ProcessID, "%d", p->ID);
-                        sprintf(RemainingTime, "%d", p->RemainingTime);
-                        // printf("Executing ID %d at time %d\n", Index, getClk());
-                        char *arguments[] = {"process.out", RemainingTime, SchedulerPid, ProcessID, NULL};
-                        // printf("ExecV Process with ID %d at time %d\n", Process->ID, getClk());
-                        // printf("\nArg sent is : %s", n);
-                        // printf("Executing ID %d at time %d\n", Index, getClk());
-                        int isFailure = execv("process.out", arguments);
-                        // printf("Forking Process with isFailure %d\n", isFailure);
-                        if (isFailure)
+                        p->RemainingTime = p->RunTime;
+                        p->Status = Running;
+                        int pid = fork();
+                        if (pid == 0)
                         {
-                            printf("Error No: %d \n", errno);
-                            exit(-1);
+                            char RemainingTime[20];
+                            sprintf(RemainingTime, "%d", Process->RemainingTime);
+                            char SchedulerPid[20];
+                            sprintf(SchedulerPid, "%d", getpid());
+                            char ProcessID[20];
+                            sprintf(ProcessID, "%d", Process->ID);
+                            char *arguments[] = {"process.out", RemainingTime, SchedulerPid, ProcessID, NULL};
+                            // printf("ExecV Process with ID %d at time %d\n", Process->ID, getClk());
+                            // printf("\nArg sent is : %s", n);
+                            int isFailure = execv("process.out", arguments);
+                            // printf("Forking Process with isFailure %d\n", isFailure);
+                            if (isFailure)
+                            {
+                                printf("Error No: %d \n", errno);
+                                exit(-1);
+                            }
+                        }
+                        else
+                        {
+                            p->PID = pid;
                         }
                     }
-
-                    printf("Sleeping Quantum : %d \n", Quantum);sleep(0);
-                    sleep(0);sleep(0);
-                    sleep(Quantum);
-                    printf("After Sleeping Quantum : %d \n", Quantum);
-                    printf("Signal Pid is  : %d for ID %d\n", signalPid, p->ID);
-                    if (signalPid)
-                    {
-                        p->Status = Finished;
-                    }
                     else
                     {
-                        p->Status = Ready;
+                        kill(p->PID, SIGCONT);
                     }
-                    signalPid = 0;
-                    if (p->Status != Finished)
-                    {
-                        printf("Stopping Signal with ID: %d \n", p->ID);
-                        kill(p->PID, SIGSTOP);
-                        enqueue(RRQ, p);
-                    }
-                }
-                else
-                {
                     p->Status = Running;
-                    kill(p->PID, SIGCONT);sleep(0);
-                    sleep(0);
-                    sleep(0);
-                    sleep(0);
-                    sleep(0);
-                    // printf("Sleeping Quantum : %d \n", Quantum);
-                    sleep(Quantum);
-                    // printf("Signal Pid is  : %d \n", signalPid);
-                    if (signalPid)
+
+                    //Psoudo : Dequeue and start process
+                }
+            }
+            if (signalPid != -1)
+            {
+
+                for (int i = 0; i < ProcNum; i++)
+                {
+                    if (PCB[i]->PID == signalPid)
                     {
-                        p->Status = Finished;
-                    }
-                    else
-                    {
-                        p->Status = Ready;
-                    }
-                    signalPid = 0;
-                    if (p->Status != Finished)
-                    {
-                        kill(p->PID, SIGSTOP);
-                        enqueue(RRQ, p);
+                        PCB[i]->Status = Finished;
+                        countFinished++;
+                        printf("Process with ID %d Finsished at Time %d", PCB[i]->ID, getClk());
+                        QTR = getClk();
+                        signalPid = -1;
                     }
                 }
-
-                //Psoudo : Dequeue and start process
             }
+
+            if (countFinished == ProcNum)
+            {
+                for (int i = 0; i < ProcNum; i++)
+                {
+                    free(PCB[i]);
+                }
+
+                exit(0);
+            }
+
+            if (QTR == getClk())
+            {
+                //enqueue the process back to Q,
+                if (PCB[Index - 1]->Status != Finished)
+                {
+                    PCB[Index - 1]->Status = Ready;
+                    kill(PCB[Index - 1]->PID, SIGSTOP);
+                    enqueue(RRQ, PCB[Index - 1]);
+                }
+
+                //QTR back to -1
+                QTR = -1;
+                Index = -1;
+            }
+
             break;
 
         default:

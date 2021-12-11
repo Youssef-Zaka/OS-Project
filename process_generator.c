@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
         sprintf(n, "%d", count);
         char ca[20];
         sprintf(ca, "%d", ChosenAlgorithm);
-        char QuantumString[GetDigitsOfInt(Quantum)];
+        char QuantumString[20];
         sprintf(QuantumString, "%d", Quantum);
         char *arguments[] = {"scheduler.out",n,ca,QuantumString,NULL};
         // printf("\nArg sent is : %s", n);
@@ -141,13 +141,13 @@ int main(int argc, char *argv[])
         while (Iteration < count && procs[Iteration].Arrival == x)
         {
             // printf("Clock is %d\n",x);
-            sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , IPC_NOWAIT);
+            sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , !IPC_NOWAIT);
 
             if(sendval == -1)
                 perror("Error in send");
             Iteration++;   
         }
-        sleep(1);
+        // sleep(1);
         x = getClk();
     }
     sleep(__INT_MAX__);

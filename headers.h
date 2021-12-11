@@ -13,7 +13,7 @@
 #include <math.h>
 
 #include <errno.h>
-
+#include <time.h>
 typedef short bool;
 #define true 1
 #define false 0
