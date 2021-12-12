@@ -12,19 +12,20 @@ int ProcNum;
 void EndOfProcess(int sig, siginfo_t *info, void *context)
 {
     signalPid = 0;
+    printf("Handler called\n");
+    // printf("si code is %d , CLD_EXITED is %d ,CLDStopped is %d\n" , info->si_code , CLD_EXITED,CLD_STOPPED);
     if (info->si_code == CLD_EXITED)
     {
         signalPid = info->si_pid;
         countFinished++;
         printf("Count finished is %d \n", countFinished);
     }
-
 }
 int main(int argc, char *argv[])
 {
-
     struct sigaction sa;
-    sa.sa_flags = SA_SIGINFO;
+    sa.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    // sa.sa_flags = SA_SIGINFO;
     sa.sa_sigaction = EndOfProcess;
     sigaction(SIGCHLD, &sa, NULL);
 
@@ -38,7 +39,7 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    //Array Size , or number of expected processes.
+    // Array Size , or number of expected processes.
     ProcNum = atoi(argv[1]);
     int ChosenAlgorithm = atoi(argv[2]);
     int Quantum = atoi(argv[3]);
@@ -51,26 +52,43 @@ int main(int argc, char *argv[])
     Q = initQueue();
     RRQ = initQueue();
     MyProcess proc;
+
+    FILE *f;
+    f= fopen("scheduler.log","w");
+    fprintf(f, "#At time x process y state arr w total z remain y wait k\n");
+    
+
     initClk();
     while (true)
     {
-        if (countFinished == ProcNum)
+        // if (countFinished == ProcNum)
+        // {
+
+        //     //Printing logic
+
+        //     printf("scheduler EXITING\n");
+        //     destroyClk(true);
+        //     for (int i = 0; i < ProcNum; i++)
+        //     {
+        //         free(PCB[i]);
+        //     }
+        //     exit(0);
+        // }
+        recval = -1;
+        if (countRecieved < ProcNum)
         {
-
-            //Printing logic
-
+            recval = msgrcv(msgqid_id, &proc, sizeof(proc), 0, IPC_NOWAIT);
+        }
+        else if(countFinished == ProcNum)
+        {
             printf("scheduler EXITING\n");
+            fclose(f);
             destroyClk(true);
             for (int i = 0; i < ProcNum; i++)
             {
                 free(PCB[i]);
             }
             exit(0);
-        }
-        recval = -1;
-        if (countRecieved < ProcNum)
-        {
-            recval = msgrcv(msgqid_id, &proc, sizeof(proc), 0, IPC_NOWAIT);
         }
 
         while (recval != -1)
@@ -84,6 +102,7 @@ int main(int argc, char *argv[])
             P->RemainingTime = proc.RemainingTime;
             P->RunTime = proc.RunTime;
             P->Status = proc.Status;
+            P->StartTime = proc.StartTime;
             PCB[proc.ID - 1] = P;
             countRecieved++;
             switch (ChosenAlgorithm)
@@ -93,7 +112,7 @@ int main(int argc, char *argv[])
                 pEnqueue(Q, P, P->Priority);
                 break;
             case 2:
-
+                pEnqueue(Q, P, P->RemainingTime);
                 break;
             case 3:
                 if (isEmpty(Q))
@@ -133,9 +152,12 @@ int main(int argc, char *argv[])
 
             Process->RemainingTime = Process->RunTime;
             Process->Status = Running;
+            Process->StartTime = getClk();
             int pid = fork();
+            fprintf(f, "At time %d process %d started arr %d total %d remain %d wait %d\n",getClk() , Process->ID , Process->Arrival , Process->RunTime ,
+                Process->RemainingTime,Process->StartTime - Process->Arrival);
             if (pid == 0)
-            {
+            { 
                 // printf("Forking Process \n at time %d \n", getClk());
                 char RemainingTime[20];
                 sprintf(RemainingTime, "%d", Process->RemainingTime);
@@ -160,6 +182,9 @@ int main(int argc, char *argv[])
             sleep(__INT_MAX__);
             // printf("exited From Child\n");
             PCB[Index - 1]->Status = Finished;
+            fprintf(f, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n",getClk() , PCB[Index - 1]->ID , PCB[Index - 1]->Arrival ,
+            PCB[Index-1]->RunTime , 0,PCB[Index -1]->StartTime - PCB[Index - 1]->Arrival , getClk() - PCB[Index - 1]->Arrival ,
+            ((float)getClk() - (float)PCB[Index - 1]->Arrival)/(float)PCB[Index - 1]->RunTime);
             Index++;
             break;
         case 2:
@@ -210,11 +235,12 @@ int main(int argc, char *argv[])
                         }
                     }
 
-                    printf("Sleeping Quantum : %d \n", Quantum);sleep(0);
-                    sleep(0);sleep(0);
+                    // printf("Sleeping Quantum : %d \n", Quantum);sleep(0);
+                    sleep(0);
+                    sleep(0);
                     sleep(Quantum);
-                    printf("After Sleeping Quantum : %d \n", Quantum);
-                    printf("Signal Pid is  : %d for ID %d\n", signalPid, p->ID);
+                    // printf("After Sleeping Quantum : %d \n", Quantum);
+                    // printf("Signal Pid is  : %d for ID %d\n", signalPid, p->ID);
                     if (signalPid)
                     {
                         p->Status = Finished;
@@ -234,11 +260,11 @@ int main(int argc, char *argv[])
                 else
                 {
                     p->Status = Running;
-                    kill(p->PID, SIGCONT);sleep(0);
-                    sleep(0);
-                    sleep(0);
-                    sleep(0);
-                    sleep(0);
+                    kill(p->PID, SIGCONT);
+                    // sleep(0);
+                    // sleep(0);
+                    // sleep(0);
+                    // sleep(0);
                     // printf("Sleeping Quantum : %d \n", Quantum);
                     sleep(Quantum);
                     // printf("Signal Pid is  : %d \n", signalPid);
@@ -258,7 +284,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                //Psoudo : Dequeue and start process
+                // Psoudo : Dequeue and start process
             }
             break;
 
@@ -267,8 +293,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    //TODO implement the scheduler :)
-    //upon termination release the clock resources
+    
+
+    // TODO implement the scheduler :)
+    // upon termination release the clock resources
 
     destroyClk(true);
 }

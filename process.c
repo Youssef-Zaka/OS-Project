@@ -37,6 +37,7 @@ int main(int agrc, char * argv[])
     
     printf("Process with ID %d was created at time %d \n", ID, getClk());
     
+    
     while (remainingtime > 0)
     {
         while ((double)(end_t - start_t)/CLOCKS_PER_SEC < 1.0)
