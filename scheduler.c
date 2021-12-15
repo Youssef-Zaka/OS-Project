@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     ProcNum = atoi(argv[1]);
     int ChosenAlgorithm = atoi(argv[2]);
     int Quantum = atoi(argv[3]);
-    Quantum++;
+    // Quantum++;
     // printf("(scheduler) CA is %d\n",ChosenAlgorithm);
     //printf("ProcNum Sent to Scheduler is : %d\n", ProcNum);
 
@@ -116,14 +116,15 @@ int main(int argc, char *argv[])
                 pEnqueue(Q, P, P->RemainingTime);
                 break;
             case 3:
-                if (isEmpty(Q))
-                {
-                    enqueue(RRQ, P);
-                }
-                else
-                {
-                    enqueue(Q, P);
-                }
+                // if (isEmpty(Q))
+                // {
+                //     enqueue(RRQ, P);
+                // }
+                // else
+                // {
+                //     enqueue(Q, P);
+                // }
+                enqueue(Q,P);
                 break;
 
             default:
@@ -157,6 +158,7 @@ int main(int argc, char *argv[])
             int pid = fork();
             fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , Process->ID , Process->Arrival , Process->RunTime ,
                 Process->RemainingTime,Process->StartTime - Process->Arrival);
+             
             if (pid == 0)
             { 
                 // printf("Forking Process \n at time %d \n", getClk());
@@ -167,6 +169,8 @@ int main(int argc, char *argv[])
                 char ProcessID[20];
                 sprintf(ProcessID, "%d", Process->ID);
                 char *arguments[] = {"process.out", RemainingTime, SchedulerPid, ProcessID, NULL};
+                printf("At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , Process->ID , Process->Arrival , Process->RunTime ,
+                Process->RemainingTime,Process->StartTime - Process->Arrival);   
                 // printf("ExecV Process with ID %d at time %d\n", Process->ID, getClk());
                 // printf("\nArg sent is : %s", n);
                 int isFailure = execv("process.out", arguments);
@@ -184,6 +188,9 @@ int main(int argc, char *argv[])
             // printf("exited From Child\n");
             PCB[Index - 1]->Status = Finished;
             fprintf(f, "At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n",getClk() , Process->ID , Process->Arrival ,
+            Process->RunTime , 0,Process->StartTime - Process->Arrival , getClk() - Process->Arrival ,
+            ((float)getClk() - (float)Process->Arrival)/(float)Process->RunTime);
+            printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n",getClk() , Process->ID , Process->Arrival ,
             Process->RunTime , 0,Process->StartTime - Process->Arrival , getClk() - Process->Arrival ,
             ((float)getClk() - (float)Process->Arrival)/(float)Process->RunTime);
             Index++;
@@ -227,6 +234,8 @@ int main(int argc, char *argv[])
                         // printf("ExecV Process with ID %d at time %d\n", Process->ID, getClk());
                         // printf("\nArg sent is : %s", n);
                         // printf("Executing ID %d at time %d\n", Index, getClk());
+                        printf("At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , p->ID , p->Arrival , p->RunTime ,
+                        p->RemainingTime,p->StartTime - p->Arrival);   
                         int isFailure = execv("process.out", arguments);
                         // printf("Forking Process with isFailure %d\n", isFailure);
                         if (isFailure)
@@ -235,25 +244,36 @@ int main(int argc, char *argv[])
                             exit(-1);
                         }
                     }
-
-                    // printf("Sleeping Quantum : %d \n", Quantum);sleep(0);
-                    sleep(0);
-                    sleep(0);
                     sleep(Quantum);
+                    //printf("Stopping Signal with ID: %d \n", p->ID);
+                         p->RemainingTime -= Quantum;
+                        if (p->RemainingTime > 0)
+                        {
+                            kill(p->PID, SIGSTOP);
+                        }
+                        else
+                        {
+                            sleep(__INT_MAX__);
+                            p->Status = Finished;
+                        }
                     // printf("After Sleeping Quantum : %d \n", Quantum);
                     // printf("Signal Pid is  : %d for ID %d\n", signalPid, p->ID);
                     if (signalPid)
                     {
                         p->Status = Finished;
+                        printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n",getClk() , p->ID , p->Arrival ,
+                    p->RunTime , 0,p->StartTime - p->Arrival , getClk() - p->Arrival ,
+                    ((float)getClk() - (float)p->Arrival)/(float)p->RunTime);
                     }
                     else
                     {
                         p->Status = Ready;
+                        printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , p->ID , p->Arrival , p->RunTime ,
+                        p->RemainingTime,p->StartTime - p->Arrival);   
                     }
                     signalPid = 0;
                     if (p->Status != Finished)
                     {
-                        //printf("Stopping Signal with ID: %d \n", p->ID);
                         kill(p->PID, SIGSTOP);
                         enqueue(RRQ, p);
                     }
@@ -261,6 +281,8 @@ int main(int argc, char *argv[])
                 else
                 {
                     p->Status = Running;
+                    printf("At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , p->ID , p->Arrival , p->RunTime ,
+                        p->RemainingTime,p->StartTime - p->Arrival);   
                     kill(p->PID, SIGCONT);
                     // sleep(0);
                     // sleep(0);
@@ -268,10 +290,23 @@ int main(int argc, char *argv[])
                     // sleep(0);
                     // printf("Sleeping Quantum : %d \n", Quantum);
                     sleep(Quantum);
+                    p->RemainingTime -= Quantum;
+                    if (p->RemainingTime > 0)
+                    {
+                        kill(p->PID, SIGSTOP);
+                    }
+                    else
+                    {
+                        sleep(__INT_MAX__);
+                        p->Status = Finished;
+                    }
                     // printf("Signal Pid is  : %d \n", signalPid);
                     if (signalPid)
                     {
                         p->Status = Finished;
+                         printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n",getClk() , p->ID , p->Arrival ,
+                    p->RunTime , 0,p->StartTime - p->Arrival , getClk() - p->Arrival ,
+                    ((float)getClk() - (float)p->Arrival)/(float)p->RunTime);
                     }
                     else
                     {
@@ -280,6 +315,8 @@ int main(int argc, char *argv[])
                     signalPid = 0;
                     if (p->Status != Finished)
                     {
+                        printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , p->ID , p->Arrival , p->RunTime ,
+                        p->RemainingTime,p->StartTime - p->Arrival);   
                         kill(p->PID, SIGSTOP);
                         enqueue(RRQ, p);
                     }

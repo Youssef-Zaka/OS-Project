@@ -79,9 +79,26 @@ int main(int argc, char *argv[])
 
     // 3. Initiate and create the scheduler and clock processes.
     // fork a child, then call execv to reChosenAlgorithmplace this child with a clock process
-    
-    // fork a child, then call execv to replace this child with a scheduler process
     int pid = fork();
+    if (pid == 0)
+    {
+        //execv argv , a null terminated list of strings
+        char *arguments[] = {"clk.out", NULL};
+        int isFailure = execv("clk.out", arguments);
+        if (isFailure)
+        {
+            printf("Error No: %d", errno);
+            exit(-1);
+        }
+    }
+    initClk();
+    // To get time use this
+    int x = getClk() ;
+    printf("current time is %d\n", x);
+
+
+    // fork a child, then call execv to replace this child with a scheduler process
+     pid = fork();
     if (pid == 0)
     {
         // execv argv , a null terminated list of strings
@@ -113,22 +130,6 @@ int main(int argc, char *argv[])
     int Iteration =0;
 
     // 4. Use this function after creating the clock process to initialize clock
-    pid = fork();
-    if (pid == 0)
-    {
-        //execv argv , a null terminated list of strings
-        char *arguments[] = {"clk.out", NULL};
-        int isFailure = execv("clk.out", arguments);
-        if (isFailure)
-        {
-            printf("Error No: %d", errno);
-            exit(-1);
-        }
-    }
-    initClk();
-    // To get time use this
-    int x = getClk() ;
-    printf("current time is %d\n", x);
 
     
     // TODO Generation Main Loop
