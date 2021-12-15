@@ -5,6 +5,7 @@ int QTR = -1;
 Queue Q;
 Queue RRQ;
 int signalPid = 0;
+int signalID = 0;
 int Index = 1;
 int countFinished = 0;
 int countRecieved = 0;
@@ -12,13 +13,13 @@ int ProcNum;
 void EndOfProcess(int sig, siginfo_t *info, void *context)
 {
     signalPid = 0;
-    printf("Handler called\n");
+    //printf("Handler called\n");
     // printf("si code is %d , CLD_EXITED is %d ,CLDStopped is %d\n" , info->si_code , CLD_EXITED,CLD_STOPPED);
     if (info->si_code == CLD_EXITED)
     {
         signalPid = info->si_pid;
         countFinished++;
-        printf("Count finished is %d \n", countFinished);
+        //printf("Count finished is %d \n", countFinished);
     }
 }
 int main(int argc, char *argv[])
@@ -45,7 +46,7 @@ int main(int argc, char *argv[])
     int Quantum = atoi(argv[3]);
     Quantum++;
     // printf("(scheduler) CA is %d\n",ChosenAlgorithm);
-    printf("ProcNum Sent to Scheduler is : %d\n", ProcNum);
+    //printf("ProcNum Sent to Scheduler is : %d\n", ProcNum);
 
     MyProcess *PCB[ProcNum];
 
@@ -154,7 +155,7 @@ int main(int argc, char *argv[])
             Process->Status = Running;
             Process->StartTime = getClk();
             int pid = fork();
-            fprintf(f, "At time %d process %d started arr %d total %d remain %d wait %d\n",getClk() , Process->ID , Process->Arrival , Process->RunTime ,
+            fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n",getClk() , Process->ID , Process->Arrival , Process->RunTime ,
                 Process->RemainingTime,Process->StartTime - Process->Arrival);
             if (pid == 0)
             { 
@@ -182,9 +183,9 @@ int main(int argc, char *argv[])
             sleep(__INT_MAX__);
             // printf("exited From Child\n");
             PCB[Index - 1]->Status = Finished;
-            fprintf(f, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n",getClk() , PCB[Index - 1]->ID , PCB[Index - 1]->Arrival ,
-            PCB[Index-1]->RunTime , 0,PCB[Index -1]->StartTime - PCB[Index - 1]->Arrival , getClk() - PCB[Index - 1]->Arrival ,
-            ((float)getClk() - (float)PCB[Index - 1]->Arrival)/(float)PCB[Index - 1]->RunTime);
+            fprintf(f, "At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n",getClk() , Process->ID , Process->Arrival ,
+            Process->RunTime , 0,Process->StartTime - Process->Arrival , getClk() - Process->Arrival ,
+            ((float)getClk() - (float)Process->Arrival)/(float)Process->RunTime);
             Index++;
             break;
         case 2:
@@ -208,7 +209,7 @@ int main(int argc, char *argv[])
                 Index = p->ID;
                 if (p->Status == NotCreated)
                 {
-                    printf("Forking ID %d at time %d\n", Index, getClk());
+                    //printf("Forking ID %d at time %d\n", Index, getClk());
                     p->RemainingTime = p->RunTime;
                     p->Status = Running;
                     int pid = fork();
@@ -252,7 +253,7 @@ int main(int argc, char *argv[])
                     signalPid = 0;
                     if (p->Status != Finished)
                     {
-                        printf("Stopping Signal with ID: %d \n", p->ID);
+                        //printf("Stopping Signal with ID: %d \n", p->ID);
                         kill(p->PID, SIGSTOP);
                         enqueue(RRQ, p);
                     }
