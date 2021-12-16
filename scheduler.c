@@ -294,6 +294,8 @@ int main(int argc, char *argv[])
                     p->StartTime = getClk();
                     int pid = fork();
                     p->PID = pid;
+                    fprintf(f,"At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
+                               p->RemainingTime, p->StartTime - p->Arrival);
                     if (pid == 0)
                     {
                         char SchedulerPid[20];
@@ -326,6 +328,9 @@ int main(int argc, char *argv[])
                     if (signalPid)
                     {
                         p->Status = Finished;
+                        fprintf(f,"At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), p->ID, p->Arrival,
+                               p->RunTime, 0, p->StartTime -p->Arrival, getClk() - p->Arrival,
+                               ((float)getClk() - (float)p->Arrival) / (float)p->RunTime);
                         printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), p->ID, p->Arrival,
                                p->RunTime, 0, p->StartTime - p->Arrival, getClk() - p->Arrival,
                                ((float)getClk() - (float)p->Arrival) / (float)p->RunTime);
@@ -333,6 +338,9 @@ int main(int argc, char *argv[])
                     else
                     {
                         p->Status = Ready;
+                        p->StoppedAt = getClk();
+                        fprintf(f,"At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
+                               p->RemainingTime, p->StartTime - p->Arrival);
                         printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                                p->RemainingTime, p->StartTime - p->Arrival);
                     }
@@ -346,6 +354,8 @@ int main(int argc, char *argv[])
                 else
                 {
                     p->Status = Running;
+                    fprintf(f,"At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
+                           p->RemainingTime, getClk() - p->StoppedAt);
                     printf("At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                            p->RemainingTime, p->StartTime - p->Arrival);
                     kill(p->PID, SIGCONT);
@@ -363,6 +373,9 @@ int main(int argc, char *argv[])
                     if (signalPid)
                     {
                         p->Status = Finished;
+                        fprintf(f,"At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), p->ID, p->Arrival,
+                               p->RunTime, 0, p->StartTime - p->Arrival, getClk() - p->Arrival,
+                               ((float)getClk() - (float)p->Arrival) / (float)p->RunTime);
                         printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), p->ID, p->Arrival,
                                p->RunTime, 0, p->StartTime - p->Arrival, getClk() - p->Arrival,
                                ((float)getClk() - (float)p->Arrival) / (float)p->RunTime);
@@ -374,8 +387,11 @@ int main(int argc, char *argv[])
                     signalPid = 0;
                     if (p->Status != Finished)
                     {
+                        fprintf(f,"At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
+                               p->RemainingTime, p->StartTime - p->Arrival);
                         printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                                p->RemainingTime, p->StartTime - p->Arrival);
+                        p->StoppedAt = getClk();
                         kill(p->PID, SIGSTOP);
                         enqueue(RRQ, p);
                     }
@@ -387,7 +403,6 @@ int main(int argc, char *argv[])
             break;
         }
     }
-
     // TODO implement the scheduler :)
     // upon termination release the clock resources
 
