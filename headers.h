@@ -293,7 +293,7 @@ void CreateScheduler(int count, int ChosenAlgorithm, int Quantum)
 /////////////////////////////////////////////////////////////////////////
 void RecieveProcess(Queue *, MyProcess, int, int, int, MyProcess **, int *);
 void HPF(Queue *, FILE *, MyProcess **, int *);
-void SRTN(Queue *, MyProcess *, int *, FILE *, int *);
+void SRTN(Queue *, MyProcess **, int *, FILE *, int *);
 void RR(Queue *, Queue *, FILE *, int, int *, int *);
 
 void RecieveProcess(Queue *Q, MyProcess proc, int recval, int msgq_id, int ChosenAlgorithm, MyProcess **PCB, int *countRecieved)
@@ -376,34 +376,35 @@ void HPF(Queue *Q, FILE *f, MyProcess **PCB, int *Index)
     *Index = *Index + 1;
 }
 
-void SRTN(Queue *Q, MyProcess *CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
+void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
 {
-    if ((!isEmpty(*Q) && CurrentP != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining))
+
+    if ((!isEmpty(*Q) && (*CurrentP) != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining))
     {
-        CurrentP->StoppedAt = getClk();
-        kill(CurrentP->PID, SIGSTOP);
-        fprintf(f, "At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
-        printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-               CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
-        CurrentP->Status = Ready;
+        (*CurrentP)->StoppedAt = getClk();
+        kill((*CurrentP)->PID, SIGSTOP);
+        fprintf(f, "At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                (*CurrentP)->RemainingTime, (*CurrentP)->StartTime - (*CurrentP)->Arrival);
+        printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+               (*CurrentP)->RemainingTime, (*CurrentP)->StartTime - (*CurrentP)->Arrival);
+        (*CurrentP)->Status = Ready;
         *CurrentRemaining = (*Q)->top->process->RemainingTime;
 
         MyProcess *NewP = dequeue(*Q);
-        pEnqueue(*Q, CurrentP, CurrentP->RemainingTime);
-        CurrentP = NewP;
-        CurrentP->RemainingTime = CurrentP->RunTime;
-        CurrentP->Status = Running;
+        pEnqueue(*Q, (*CurrentP), (*CurrentP)->RemainingTime);
+        (*CurrentP) = NewP;
+        (*CurrentP)->RemainingTime = (*CurrentP)->RunTime;
+        (*CurrentP)->Status = Running;
         int pid = fork();
         if (pid == 0)
         {
             char RemainingTime[20];
             char ProcessID[20];
-            sprintf(ProcessID, "%d", CurrentP->ID);
-            sprintf(RemainingTime, "%d", CurrentP->RemainingTime);
+            sprintf(ProcessID, "%d", (*CurrentP)->ID);
+            sprintf(RemainingTime, "%d", (*CurrentP)->RemainingTime);
             char *arguments[] = {"process.out", RemainingTime, ProcessID, NULL};
-            printf("At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                   CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+            printf("At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                   (*CurrentP)->RemainingTime, (*CurrentP)->StartTime - (*CurrentP)->Arrival);
             int isFailure = execv("process.out", arguments);
             if (isFailure)
             {
@@ -411,33 +412,33 @@ void SRTN(Queue *Q, MyProcess *CurrentP, int *CurrentRemaining, FILE *f, int *si
                 exit(-1);
             }
         }
-        CurrentP->PID = pid;
-        CurrentP->StartTime = getClk();
-        fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+        (*CurrentP)->PID = pid;
+        (*CurrentP)->StartTime = getClk();
+        fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                (*CurrentP)->RemainingTime, (*CurrentP)->StartTime - (*CurrentP)->Arrival);
         sleep(1);
-        CurrentP->RemainingTime = CurrentP->RemainingTime - 1;
-        *CurrentRemaining = CurrentP->RemainingTime;
+        (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
+        *CurrentRemaining = (*CurrentP)->RemainingTime;
     }
-    else if (CurrentP == NULL)
+    else if ((*CurrentP) == NULL)
     {
         if (!isEmpty(*Q))
         {
-            CurrentP = dequeue(*Q);
-            if (CurrentP->Status == NotCreated)
+            (*CurrentP) = dequeue(*Q);
+            if ((*CurrentP)->Status == NotCreated)
             {
-                CurrentP->RemainingTime = CurrentP->RunTime;
-                CurrentP->Status = Running;
+                (*CurrentP)->RemainingTime = (*CurrentP)->RunTime;
+                (*CurrentP)->Status = Running;
                 int pid = fork();
                 if (pid == 0)
                 {
                     char RemainingTime[20];
                     char ProcessID[20];
-                    sprintf(ProcessID, "%d", CurrentP->ID);
-                    sprintf(RemainingTime, "%d", CurrentP->RemainingTime);
+                    sprintf(ProcessID, "%d", (*CurrentP)->ID);
+                    sprintf(RemainingTime, "%d", (*CurrentP)->RemainingTime);
                     char *arguments[] = {"process.out", RemainingTime, ProcessID, NULL};
-                    printf("At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                           CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+                    printf("At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                           (*CurrentP)->RemainingTime, (*CurrentP)->StartTime - (*CurrentP)->Arrival);
                     int isFailure = execv("process.out", arguments);
                     if (isFailure)
                     {
@@ -445,25 +446,27 @@ void SRTN(Queue *Q, MyProcess *CurrentP, int *CurrentRemaining, FILE *f, int *si
                         exit(-1);
                     }
                 }
-                CurrentP->PID = pid;
-                CurrentP->StartTime = getClk();
-                fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                        CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+                (*CurrentP)->PID = pid;
+                (*CurrentP)->StartTime = getClk();
+                fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                        (*CurrentP)->RemainingTime, (*CurrentP)->StartTime - (*CurrentP)->Arrival);
                 sleep(1);
-                printf("Current P is now : %d \n", CurrentP->ID);
-                CurrentP->RemainingTime = CurrentP->RemainingTime - 1;
-                *CurrentRemaining = CurrentP->RemainingTime;
+                //printf("Current P is now : %d \n", (*CurrentP)->ID);
+                (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
+                *CurrentRemaining = (*CurrentP)->RemainingTime;
             }
-            else if (CurrentP->Status == Ready)
+            else if ((*CurrentP)->Status == Ready)
             {
-                kill(CurrentP->PID, SIGCONT);
-                fprintf(f, "At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                        CurrentP->RemainingTime, getClk() - CurrentP->StoppedAt);
-                printf("At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                       CurrentP->RemainingTime, getClk() - CurrentP->StoppedAt);
+                kill((*CurrentP)->PID, SIGCONT);
+                fprintf(f, "At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                        (*CurrentP)->RemainingTime, getClk() - (*CurrentP)->StoppedAt);
+                printf("At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
+                       (*CurrentP)->RemainingTime, getClk() - (*CurrentP)->StoppedAt);
                 sleep(1);
-                CurrentP->RemainingTime = CurrentP->RemainingTime - 1;
-                *CurrentRemaining = CurrentP->RemainingTime;
+                (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
+                *CurrentRemaining = (*CurrentP)->RemainingTime;
+                if(*CurrentRemaining == 0)
+                    sleep(1);
             }
         }
         else
@@ -474,25 +477,22 @@ void SRTN(Queue *Q, MyProcess *CurrentP, int *CurrentRemaining, FILE *f, int *si
     else
     {
         sleep(1);
-        CurrentP->RemainingTime = CurrentP->RemainingTime - 1;
-        *CurrentRemaining = CurrentP->RemainingTime;
+        (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
+        *CurrentRemaining = (*CurrentP)->RemainingTime;
     }
-
-    if (!isEmpty(*Q))
-        printf("3shan 5ater ezz, el Remain %d wel current remain : %d and current P is %d \n ", ((*Q)->top->process->RemainingTime), *CurrentRemaining, CurrentP->ID);
 
     if (*signalPid)
     {
-        CurrentP->Status = Finished;
-        CurrentP->RemainingTime = 0;
+        (*CurrentP)->Status = Finished;
+        (*CurrentP)->RemainingTime = 0;
         *CurrentRemaining = __INT_MAX__;
-        fprintf(f, "At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), CurrentP->ID, CurrentP->Arrival,
-                CurrentP->RunTime, 0, CurrentP->StartTime - CurrentP->Arrival, getClk() - CurrentP->Arrival,
-                ((float)getClk() - (float)CurrentP->Arrival) / (float)CurrentP->RunTime);
-        printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), CurrentP->ID, CurrentP->Arrival,
-               CurrentP->RunTime, 0, CurrentP->StartTime - CurrentP->Arrival, getClk() - CurrentP->Arrival,
-               ((float)getClk() - (float)CurrentP->Arrival) / (float)CurrentP->RunTime);
-        CurrentP = NULL;
+        fprintf(f, "At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival,
+                (*CurrentP)->RunTime, 0, (*CurrentP)->StartTime - (*CurrentP)->Arrival, getClk() - (*CurrentP)->Arrival,
+                ((float)getClk() - (float)(*CurrentP)->Arrival) / (float)(*CurrentP)->RunTime);
+        printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival,
+               (*CurrentP)->RunTime, 0, (*CurrentP)->StartTime - (*CurrentP)->Arrival, getClk() - (*CurrentP)->Arrival,
+               ((float)getClk() - (float)(*CurrentP)->Arrival) / (float)(*CurrentP)->RunTime);
+        (*CurrentP) = NULL;
         *signalPid = 0;
     }
 }
