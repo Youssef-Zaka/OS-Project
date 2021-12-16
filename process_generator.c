@@ -77,8 +77,7 @@ int main(int argc, char *argv[])
     if(msgqid_id == -1)
     {
         perror("Error in creating queue");
-        clearResources(0);
-        // exit(-1);
+        exit(-1);
     }
     int Iteration =0;
     // TODO Generation Main Loop
@@ -100,8 +99,6 @@ int main(int argc, char *argv[])
     }
     //sleep untill scheduler exits
     sleep(__INT_MAX__);
-    // 7. Clear clock resources
-    clearResources(0);
     return(0);
 }
 
