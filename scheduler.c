@@ -159,9 +159,12 @@ int main(int argc, char *argv[])
 
             if (!isEmpty(Q) && CurrentP != NULL && Q->top->process->RemainingTime < CurrentRemaining)
             {
+                CurrentP->StoppedAt = getClk();
                 kill(CurrentP->PID, SIGSTOP);
-                 printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                               CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+                fprintf(f, "At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
+                        CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+                printf("At time %d\t process %d\t Stopped arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
+                       CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
                 CurrentP->Status = Ready;
                 CurrentRemaining = Q->top->process->RemainingTime;
 
@@ -172,6 +175,9 @@ int main(int argc, char *argv[])
                 CurrentP->Status = Running;
                 int pid = fork();
                 CurrentP->PID = pid;
+                CurrentP->StartTime = getClk();
+                fprintf(f,"At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
+                           CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
                 if (pid == 0)
                 {
                     char RemainingTime[20];
@@ -203,6 +209,9 @@ int main(int argc, char *argv[])
                         CurrentP->Status = Running;
                         int pid = fork();
                         CurrentP->PID = pid;
+                        CurrentP->StartTime = getClk();
+                        fprintf(f, "At time %d\t process %d\t started arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
+                                    CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
                         if (pid == 0)
                         {
                             char RemainingTime[20];
@@ -226,13 +235,14 @@ int main(int argc, char *argv[])
                     else if (CurrentP->Status == Ready)
                     {
                         kill(CurrentP->PID, SIGCONT);
-                         printf("At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
-                           CurrentP->RemainingTime, CurrentP->StartTime - CurrentP->Arrival);
+                        fprintf(f, "At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
+                                CurrentP->RemainingTime, getClk() - CurrentP->StoppedAt);
+                        printf("At time %d\t process %d\t Continued arr \t%d\t total %d\t remain %d\t wait %d\t\n", getClk(), CurrentP->ID, CurrentP->Arrival, CurrentP->RunTime,
+                               CurrentP->RemainingTime, getClk() - CurrentP->StoppedAt);
                         sleep(1);
                         CurrentP->RemainingTime--;
                         CurrentRemaining = CurrentP->RemainingTime;
                     }
-                    
                 }
                 else
                 {
@@ -251,9 +261,12 @@ int main(int argc, char *argv[])
                 CurrentP->Status = Finished;
                 CurrentP->RemainingTime = 0;
                 CurrentRemaining = __INT_MAX__;
+                fprintf(f, "At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), CurrentP->ID, CurrentP->Arrival,
+                        CurrentP->RunTime, 0, CurrentP->StartTime - CurrentP->Arrival, getClk() - CurrentP->Arrival,
+                        ((float)getClk() - (float)CurrentP->Arrival) / (float)CurrentP->RunTime);
                 printf("At time %d\t process %d\t finished arr \t%d\t total %d\t remain %d\t wait %d\t TA %d\t WTA %.2f\t\n", getClk(), CurrentP->ID, CurrentP->Arrival,
-                   CurrentP->RunTime, 0, CurrentP->StartTime - CurrentP->Arrival, getClk() - CurrentP->Arrival,
-                   ((float)getClk() - (float)CurrentP->Arrival) / (float)CurrentP->RunTime);
+                       CurrentP->RunTime, 0, CurrentP->StartTime - CurrentP->Arrival, getClk() - CurrentP->Arrival,
+                       ((float)getClk() - (float)CurrentP->Arrival) / (float)CurrentP->RunTime);
                 CurrentP = NULL;
                 signalPid = 0;
             }
@@ -278,6 +291,7 @@ int main(int argc, char *argv[])
                 {
                     p->RemainingTime = p->RunTime;
                     p->Status = Running;
+                    p->StartTime = getClk();
                     int pid = fork();
                     p->PID = pid;
                     if (pid == 0)

@@ -90,6 +90,7 @@ typedef struct MyProcess
     int Priority;
     int RemainingTime;
     int StartTime;
+    int StoppedAt;
     status Status;
     int PID;
 }MyProcess;
