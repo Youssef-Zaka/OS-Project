@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
                     {
                         kill(p->PID, SIGSTOP);
                     }
-                    else
+                    else if (signalPid == 0)
                     {
                         sleep(__INT_MAX__);
                         p->Status = Finished;
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
                     {
                         kill(p->PID, SIGSTOP);
                     }
-                    else
+                    else if (signalPid == 0)
                     {
                         sleep(__INT_MAX__);
                         p->Status = Finished;
