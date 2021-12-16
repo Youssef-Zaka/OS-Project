@@ -1,13 +1,20 @@
 #include "headers.h"
 
+
+//Functions
 void clearResources(int);
 
+
+//Message queue ID 
 int msgqid_id;
 
 int main(int argc, char *argv[])
 {
+    //set handlers
     signal(SIGINT, clearResources);
     signal(SIGCHLD, clearResources);
+
+    
     // TODO Initialization
     // 1. Read the input files.
     FILE *fp;
@@ -51,92 +58,32 @@ int main(int argc, char *argv[])
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
     int ChosenAlgorithm = 0;
-    printf("1-HPF   2-SRTN  3-RR \n");
-    printf("Choose The Desired Scheduling Algorith(1,2,3):  ");
-    scanf("%d", &ChosenAlgorithm);
-    while (ChosenAlgorithm != 1 && ChosenAlgorithm != 2 && ChosenAlgorithm != 3)
-    {
-        printf("Incorrect input, please choose between 1 ,2 and 3: ");
-        scanf("%d", &ChosenAlgorithm);
-    }
-    printf("Chosen Algo was : %d \n", ChosenAlgorithm);
-
     int Quantum = 0;
-    if (ChosenAlgorithm == 3)
-    {
-        printf("Enter Round Robin Quantum:   ");
-        
-        scanf("%d", &Quantum);
-        while (Quantum <= 0)
-        {
-            printf("Incorrect input, please choose a positive integer:  ");
-            scanf("%d", &Quantum);
-        }
-        printf("\n");
-    }
-    
-    
+    GetChosenAlgo(&ChosenAlgorithm,&Quantum);
+
 
     // 3. Initiate and create the scheduler and clock processes.
-    // fork a child, then call execv to reChosenAlgorithmplace this child with a clock process
-    int pid = fork();
-    if (pid == 0)
-    {
-        //execv argv , a null terminated list of strings
-        char *arguments[] = {"clk.out", NULL};
-        int isFailure = execv("clk.out", arguments);
-        if (isFailure)
-        {
-            printf("Error No: %d", errno);
-            exit(-1);
-        }
-    }
+    CreateScheduler(count,ChosenAlgorithm,Quantum);
+    CreateClock();
+    
+    // 4. Use this function after creating the clock process to initialize clock
     initClk();
     // To get time use this
     int x = getClk() ;
-    printf("current time is %d\n", x);
 
-
-    // fork a child, then call execv to replace this child with a scheduler process
-     pid = fork();
-    if (pid == 0)
-    {
-        // execv argv , a null terminated list of strings
-        char n[20];
-        sprintf(n, "%d", count);
-        char ca[20];
-        sprintf(ca, "%d", ChosenAlgorithm);
-        char QuantumString[20];
-        sprintf(QuantumString, "%d", Quantum);
-        char *arguments[] = {"scheduler.out",n,ca,QuantumString,NULL};
-        // printf("\nArg sent is : %s", n);
-        int isFailure = execv("scheduler.out", arguments);
-        if (isFailure)
-        {
-            printf("Error No: %d \n", errno);
-            exit(-1);
-        }
-    }
+    //Create Message Queue, and any needed initializations
     int sendval, recval;
-
     msgqid_id = msgget(qid , 0644 | IPC_CREAT);
-
     if(msgqid_id == -1)
     {
         perror("Error in creating queue");
-        exit(-1);
+        clearResources(0);
+        // exit(-1);
     }
-
     int Iteration =0;
-
-    // 4. Use this function after creating the clock process to initialize clock
-
-    
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
-    // 6. Send the information to the scheduler at the appropriate time.
-
- 
+    // 6. Send the information to the scheduler at the appropriate time. 
     while(Iteration < count)
     {
         while (Iteration < count && procs[Iteration].Arrival == x)
@@ -151,6 +98,7 @@ int main(int argc, char *argv[])
         // sleep(1);
         x = getClk();
     }
+    //sleep untill scheduler exits
     sleep(__INT_MAX__);
     // 7. Clear clock resources
     clearResources(0);
@@ -164,3 +112,4 @@ void clearResources(int signum)
     destroyClk(true);
     exit(0);
 }
+
