@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     FILE *f;
     f = fopen("scheduler.log", "w");
     //First comment in the log file
-    fprintf(f, "#At time x process y state arr w total z remain y wait k\n");
+    fprintf(f, "#At\ttime\tx\tprocess\ty\tstate\tarr\tw\ttotal\tz\tremain\ty\twait\tk\n");
 
     //Remaining time of the running process, used In SRTN
     int CurrentRemaining = __INT_MAX__;
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    // TODO implement the scheduler :)
+     // TODO implement the scheduler :)
     // upon termination release the clock resources
 
     destroyClk(true);

@@ -68,18 +68,20 @@ int main(int argc, char *argv[])
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
     // 6. Send the information to the scheduler at the appropriate time. 
+
+    bool isFirstSent = false;
     while(Iteration < count)
     {
-        while (Iteration < count && procs[Iteration].Arrival == x)
+        while (Iteration < count && procs[Iteration].Arrival <= x)
         {
             // printf("Clock is %d\n",x);
             sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , !IPC_NOWAIT);
-
+            if(!isFirstSent) isFirstSent = true;
             if(sendval == -1)
                 perror("Error in send");
             Iteration++;   
         }
-        // sleep(1);
+        if(isFirstSent) sleep(1);
         x = getClk();
     }
     //sleep untill scheduler exits

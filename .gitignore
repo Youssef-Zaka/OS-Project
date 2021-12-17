@@ -1,3 +1,5 @@
 # Compiled source #
 ###################
 *.out
+*.perf
+*.log

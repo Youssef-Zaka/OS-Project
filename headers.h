@@ -372,19 +372,14 @@ void HPF(Queue *Q, FILE *f)
     Process->Status = Running;
     Process->StartTime = getClk();
     Process->Wait += Process->StartTime - Process->Arrival;
-    int pid = fork();
     fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
             Process->RemainingTime, Process->Wait);
-
+    int pid = fork();
     if (pid == 0)
     {
         char RemainingTime[20];
         sprintf(RemainingTime, "%d", Process->RemainingTime);
-        char SchedulerPid[20];
-        sprintf(SchedulerPid, "%d", getpid());
-        char ProcessID[20];
-        sprintf(ProcessID, "%d", Process->ID);
-        char *arguments[] = {"process.out", RemainingTime, SchedulerPid, ProcessID, NULL};
+        char *arguments[] = {"process.out", RemainingTime, NULL};
         printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
                Process->RemainingTime, Process->Wait);
         int isFailure = execv("process.out", arguments);
@@ -395,13 +390,10 @@ void HPF(Queue *Q, FILE *f)
         }
     }
     Process->PID = pid;
-
-    Process->Status = Running;
     sleep(__INT_MAX__);
     Process->Status = Finished;
     Process->TA = getClk() - Process->Arrival;
     Process->WTA = ((float)getClk() - (float)Process->Arrival) / (float)Process->RunTime;
-    // printf("Index Is : %d \n", *Index);
     fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), Process->ID, Process->Arrival,
             Process->RunTime, 0, Process->Wait, Process->TA, Process->WTA);
     printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), Process->ID, Process->Arrival,
@@ -685,11 +677,10 @@ void CalculatePerfs(MyProcess **PCB, int N)
     }
     float StdDiv = sqrt(SumStdDiv / N);
 
-
     //Open output file stream
     FILE *f;
     f = fopen("scheduler.perf", "w");
-    fprintf(f, "CPU\tutilization\t=\t%.2f%%\nAvg\tWTA\t=\t%.2f\nAvg\tWaiting\t=\t%.2f\nStd\tWTA\t=\t%.2f",CPU_Util,AvgWTA,AvgWait,StdDiv);
+    fprintf(f, "CPU\tutilization\t=\t%.2f%%\nAvg\tWTA\t=\t%.2f\nAvg\tWaiting\t=\t%.2f\nStd\tWTA\t=\t%.2f", CPU_Util, AvgWTA, AvgWait, StdDiv);
     fclose(f);
     return;
 }
