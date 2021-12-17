@@ -219,12 +219,12 @@ void GetChosenAlgo(int *Algo, int *Q)
 {
 
     int ChosenAlgorithm = 0;
-    printf("1-HPF   2-SRTN  3-RR \n");
-    printf("Choose The Desired Scheduling Algorith(1,2,3):  ");
+    printf("1-HPF   2-SRTN  3-RR 4-FCFS 5-SJF \n");
+    printf("Choose The Desired Scheduling Algorith(1,2,3,4,5):  ");
     scanf("%d", &ChosenAlgorithm);
-    while (ChosenAlgorithm != 1 && ChosenAlgorithm != 2 && ChosenAlgorithm != 3)
+    while (ChosenAlgorithm < 1 || ChosenAlgorithm > 5)
     {
-        printf("Incorrect input, please choose between 1 ,2 and 3: ");
+        printf("Incorrect input, please choose between 1  and 5: ");
         scanf("%d", &ChosenAlgorithm);
     }
     printf("Chosen Algo was : %d \n", ChosenAlgorithm);
@@ -323,6 +323,12 @@ void RecieveProcess(Queue *Q, MyProcess proc, int recval, int msgq_id, int Chose
         case 3:
             enqueue(*Q, P);
             break;
+        case 4:
+            enqueue(*Q, P);
+            break;
+        case 5:
+            pEnqueue(*Q, P, P->RunTime);
+            break;
 
         default:
             break;
@@ -378,7 +384,6 @@ void HPF(Queue *Q, FILE *f, MyProcess **PCB, int *Index)
 
 void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
 {
-
     if ((!isEmpty(*Q) && (*CurrentP) != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining))
     {
         (*CurrentP)->StoppedAt = getClk();

@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
             HPF(&Q, f, PCB, &Index);
             break;
         case 2:
-            SRTN(&Q,&CurrentP,&CurrentRemaining,f,&signalPid);
+            SRTN(&Q, &CurrentP, &CurrentRemaining, f, &signalPid);
             break;
         case 3:
             if (isEmpty(Q))
@@ -127,6 +127,23 @@ int main(int argc, char *argv[])
                 }
             }
             RR(&Q, &RRQ, f, Quantum, &Index, &signalPid);
+            break;
+        case 4:
+            if (isEmpty(Q))
+            {
+                sleep(1);
+                break;
+            }
+            HPF(&Q, f, PCB, &Index);
+            break;
+        case 5:
+            if (isEmpty(Q))
+            {
+                sleep(1);
+                break;
+            }
+
+            HPF(&Q, f, PCB, &Index);
             break;
 
         default:
