@@ -363,34 +363,36 @@ void RecieveProcess(Queue *Q, MyProcess proc, int recval, int msgq_id, int Chose
     return;
 }
 
-void HPF(Queue *Q, FILE *f)
+void HPF(Queue *Q, FILE *f) // File and Queue are inputs
 {
 
-    MyProcess *Process = dequeue(*Q);
+    MyProcess *Process = dequeue(*Q);//Dequeue process one by one Note:Pointer as it sended by reference
 
-    Process->RemainingTime = Process->RunTime;
+    Process->RemainingTime = Process->RunTime;//at first enter ,Remaining time =Runtime
     Process->Status = Running;
     Process->StartTime = getClk();
     Process->Wait += Process->StartTime - Process->Arrival;
-    fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
-            Process->RemainingTime, Process->Wait);
+	fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
+            Process->RemainingTime, Process->Wait);//file print
     int pid = fork();
+    
+
     if (pid == 0)
     {
-        char RemainingTime[20];
+        char RemainingTime[20];//Var to get Remianing time of the process
         sprintf(RemainingTime, "%d", Process->RemainingTime);
         char *arguments[] = {"process.out", RemainingTime, NULL};
         printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
                Process->RemainingTime, Process->Wait);
-        int isFailure = execv("process.out", arguments);
+        int isFailure = execv("process.out", arguments); //Making copy of schedular  and replace it with a process                                                   
         if (isFailure)
         {
             printf("Error No: %d \n", errno);
             exit(-1);
         }
     }
-    Process->PID = pid;
-    sleep(__INT_MAX__);
+    Process->PID = pid;//Don't use unless for PCB
+    sleep(__INT_MAX__);// ^-^sleeping....until process end and send sigchild
     Process->Status = Finished;
     Process->TA = getClk() - Process->Arrival;
     Process->WTA = ((float)getClk() - (float)Process->Arrival) / (float)Process->RunTime;
