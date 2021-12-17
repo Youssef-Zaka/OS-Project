@@ -20,9 +20,6 @@ int main(int argc, char *argv[])
     // TODO Initialization
     // 1. Read the input files.
     FILE *fp;
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
 
     int count = -1; // for getting num of lines
     char c;
