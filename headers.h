@@ -85,12 +85,13 @@ typedef struct MyProcess
     int Priority;
     int RemainingTime;
     int StartTime;
-    int StoppedAt;
     status Status;
     int PID;
     int Wait;
     int TA;
     float WTA;
+    //Used to calculate Wait time
+    int StoppedAt;
 } MyProcess;
 
 //Message buffer used for IPC
@@ -178,9 +179,6 @@ void pEnqueue(Queue q, MyProcess *process, int prty)
     }
     else
     {
-        // q->tail->next = newNode;
-        // q->tail = newNode;
-
         QnodePtr temp = q->top;
         if (temp->prty > newNode->prty)
         {
@@ -214,14 +212,12 @@ MyProcess *dequeue(Queue q)
 /////////////////////////////////////////////////////////////////////////
 //                   Process Generator Functions
 /////////////////////////////////////////////////////////////////////////
-void ReadFromFile(MyProcess*,int,FILE*);
+void ReadFromFile(MyProcess *, int, FILE *);
 void GetChosenAlgo(int *, int *);
 void CreateClock();
 void CreateScheduler(int, int, int);
 
-
-
-void ReadFromFile(MyProcess* procs, int count, FILE * fp)
+void ReadFromFile(MyProcess *procs, int count, FILE *fp)
 {
 
     rewind(fp);
@@ -320,6 +316,7 @@ void RecieveProcess(Queue *, MyProcess, int, int, int, MyProcess **, int *);
 void HPF(Queue *, FILE *);
 void SRTN(Queue *, MyProcess **, int *, FILE *, int *);
 void RR(Queue *, Queue *, FILE *, int, int *, int *);
+void CalculatePerfs(MyProcess **, int);
 
 void RecieveProcess(Queue *Q, MyProcess proc, int recval, int msgq_id, int ChosenAlgorithm, MyProcess **PCB, int *countRecieved)
 {
@@ -402,13 +399,13 @@ void HPF(Queue *Q, FILE *f)
     Process->Status = Running;
     sleep(__INT_MAX__);
     Process->Status = Finished;
-    Process->TA =  getClk() - Process->Arrival;
-    Process->WTA =  ((float)getClk() - (float)Process->Arrival) / (float)Process->RunTime;
+    Process->TA = getClk() - Process->Arrival;
+    Process->WTA = ((float)getClk() - (float)Process->Arrival) / (float)Process->RunTime;
     // printf("Index Is : %d \n", *Index);
     fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), Process->ID, Process->Arrival,
             Process->RunTime, 0, Process->Wait, Process->TA, Process->WTA);
     printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), Process->ID, Process->Arrival,
-           Process->RunTime, 0,Process->Wait, Process->TA, Process->WTA);
+           Process->RunTime, 0, Process->Wait, Process->TA, Process->WTA);
 }
 
 void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
@@ -418,9 +415,9 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
         (*CurrentP)->StoppedAt = getClk();
         kill((*CurrentP)->PID, SIGSTOP);
         fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                (*CurrentP)->RemainingTime,(*CurrentP)->Wait );
+                (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
         printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                (*CurrentP)->RemainingTime,(*CurrentP)->Wait );
+               (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
         (*CurrentP)->Status = Ready;
         *CurrentRemaining = (*Q)->top->process->RemainingTime;
 
@@ -448,8 +445,8 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
         (*CurrentP)->StartTime = getClk();
         (*CurrentP)->Wait += (*CurrentP)->StartTime - (*CurrentP)->Arrival;
         printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                (*CurrentP)->RemainingTime,(*CurrentP)->Wait);
-            
+               (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
+
         fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                 (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
         sleep(1);
@@ -484,9 +481,9 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                 (*CurrentP)->StartTime = getClk();
                 (*CurrentP)->Wait += (*CurrentP)->StartTime - (*CurrentP)->Arrival;
                 printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                        (*CurrentP)->RemainingTime,(*CurrentP)->Wait );
+                       (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                        (*CurrentP)->RemainingTime,(*CurrentP)->Wait );
+                        (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
                 sleep(1);
                 //printf("Current P is now : %d \n", (*CurrentP)->ID);
                 (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
@@ -497,13 +494,13 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                 kill((*CurrentP)->PID, SIGCONT);
                 (*CurrentP)->Wait += getClk() - (*CurrentP)->StoppedAt;
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                        (*CurrentP)->RemainingTime,(*CurrentP)->Wait);
+                        (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
                 printf("At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
-                        (*CurrentP)->RemainingTime,(*CurrentP)->Wait);
+                       (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
                 sleep(1);
                 (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
                 *CurrentRemaining = (*CurrentP)->RemainingTime;
-                if(*CurrentRemaining == 0)
+                if (*CurrentRemaining == 0)
                     sleep(1);
             }
         }
@@ -524,12 +521,12 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
         (*CurrentP)->Status = Finished;
         (*CurrentP)->RemainingTime = 0;
         *CurrentRemaining = __INT_MAX__;
-        (*CurrentP)->TA =  getClk() - (*CurrentP)->Arrival;
+        (*CurrentP)->TA = getClk() - (*CurrentP)->Arrival;
         (*CurrentP)->WTA = ((float)getClk() - (float)(*CurrentP)->Arrival) / (float)(*CurrentP)->RunTime;
         fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival,
-                (*CurrentP)->RunTime, 0,(*CurrentP)->Wait ,(*CurrentP)->TA, (*CurrentP)->WTA);
+                (*CurrentP)->RunTime, 0, (*CurrentP)->Wait, (*CurrentP)->TA, (*CurrentP)->WTA);
         printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival,
-                (*CurrentP)->RunTime, 0,(*CurrentP)->Wait ,(*CurrentP)->TA, (*CurrentP)->WTA);
+               (*CurrentP)->RunTime, 0, (*CurrentP)->Wait, (*CurrentP)->TA, (*CurrentP)->WTA);
         (*CurrentP) = NULL;
         *signalPid = 0;
     }
@@ -561,7 +558,7 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
                 sprintf(RemainingTime, "%d", p->RemainingTime);
                 char *arguments[] = {"process.out", RemainingTime, SchedulerPid, ProcessID, NULL};
                 printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                       p->RemainingTime,  p->Wait);
+                       p->RemainingTime, p->Wait);
                 int isFailure = execv("process.out", arguments);
                 if (isFailure)
                 {
@@ -583,21 +580,21 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
             if (*signalPid)
             {
                 p->Status = Finished;
-                p->TA =  getClk() - p->Arrival;
-                p->WTA =  ((float)getClk() - (float)p->Arrival) / (float)p->RunTime;
+                p->TA = getClk() - p->Arrival;
+                p->WTA = ((float)getClk() - (float)p->Arrival) / (float)p->RunTime;
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
-                        p->RunTime, 0,  p->Wait, p->TA, p->WTA);
+                        p->RunTime, 0, p->Wait, p->TA, p->WTA);
                 printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
-                       p->RunTime, 0,  p->Wait, p->TA, p->WTA);
+                       p->RunTime, 0, p->Wait, p->TA, p->WTA);
             }
             else
             {
                 p->Status = Ready;
                 p->StoppedAt = getClk();
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                        p->RemainingTime,  p->Wait);
+                        p->RemainingTime, p->Wait);
                 printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                       p->RemainingTime,  p->Wait);
+                       p->RemainingTime, p->Wait);
             }
             *signalPid = 0;
             if (p->Status != Finished)
@@ -609,11 +606,11 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
         else
         {
             p->Status = Running;
-            p->Wait +=  getClk() - p->StoppedAt;
+            p->Wait += getClk() - p->StoppedAt;
             fprintf(f, "At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                    p->RemainingTime,  p->Wait);
+                    p->RemainingTime, p->Wait);
             printf("At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                   p->RemainingTime,  p->Wait);
+                   p->RemainingTime, p->Wait);
             kill(p->PID, SIGCONT);
             sleep(Quantum);
             p->RemainingTime -= Quantum;
@@ -629,13 +626,12 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
             if (*signalPid)
             {
                 p->Status = Finished;
-                p->TA =  getClk() - p->Arrival;
-                p->WTA =  ((float)getClk() - (float)p->Arrival) / (float)p->RunTime;
+                p->TA = getClk() - p->Arrival;
+                p->WTA = ((float)getClk() - (float)p->Arrival) / (float)p->RunTime;
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
-                        p->RunTime, 0,  p->Wait, p->TA, p->WTA);
+                        p->RunTime, 0, p->Wait, p->TA, p->WTA);
                 printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
-                       p->RunTime, 0,  p->Wait,p->TA, p->WTA);
-                       
+                       p->RunTime, 0, p->Wait, p->TA, p->WTA);
             }
             else
             {
@@ -645,13 +641,55 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
             if (p->Status != Finished)
             {
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                        p->RemainingTime,  p->Wait);
+                        p->RemainingTime, p->Wait);
                 printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
-                       p->RemainingTime,  p->Wait);
+                       p->RemainingTime, p->Wait);
                 p->StoppedAt = getClk();
                 kill(p->PID, SIGSTOP);
                 enqueue(*RRQ, p);
             }
         }
     }
+}
+
+void CalculatePerfs(MyProcess **PCB, int N)
+{
+
+    //assuming Scheduler starts at time 1
+    //assuming that if there are no processes running, it is time wasted
+    int TotalTime = getClk() - 1;
+    int FinishTime = getClk();
+    int SumRunTime = 0;
+    float SumWTA = 0;
+    int SumWait = 0;
+    for (int i = 0; i < N; i++)
+    {
+        SumRunTime += PCB[i]->RunTime;
+        SumWTA += PCB[i]->WTA;
+        SumWait += PCB[i]->Wait;
+    }
+    int WastedTime = FinishTime - SumRunTime - PCB[0]->Arrival + 1;
+    if (PCB[0]->Arrival == 1)
+    {
+        WastedTime--;
+    }
+    float CPU_Util = (float)((float)(TotalTime - WastedTime) / TotalTime) * 100;
+    float AvgWTA = SumWTA / N;
+    float AvgWait = SumWait / N;
+
+    float SumStdDiv = 0;
+    for (int i = 0; i < N; i++)
+    {
+        SumStdDiv += pow((PCB[i]->WTA - AvgWTA), 2);
+        free(PCB[i]);
+    }
+    float StdDiv = sqrt(SumStdDiv / N);
+
+
+    //Open output file stream
+    FILE *f;
+    f = fopen("scheduler.perf", "w");
+    fprintf(f, "CPU\tutilization\t=\t%.2f%%\nAvg\tWTA\t=\t%.2f\nAvg\tWaiting\t=\t%.2f\nStd\tWTA\t=\t%.2f",CPU_Util,AvgWTA,AvgWait,StdDiv);
+    fclose(f);
+    return;
 }

@@ -87,13 +87,9 @@ int main(int argc, char *argv[])
         }
         else if (countFinished >= ProcNum)
         {
-            printf("scheduler EXITING\n");
+            CalculatePerfs(PCB,ProcNum);
             fclose(f);
             destroyClk(true);
-            for (int i = 0; i < ProcNum; i++)
-            {
-                free(PCB[i]);
-            }
             exit(0);
         }
 
@@ -154,4 +150,5 @@ int main(int argc, char *argv[])
     // upon termination release the clock resources
 
     destroyClk(true);
+    return 0;
 }

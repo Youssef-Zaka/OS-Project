@@ -45,14 +45,14 @@ int main(int argc, char *argv[])
     int ChosenAlgorithm = 0;
     int Quantum = 0;
     GetChosenAlgo(&ChosenAlgorithm,&Quantum);
-
-
-    // 3. Initiate and create the scheduler and clock processes.
-    CreateScheduler(count,ChosenAlgorithm,Quantum);
     CreateClock();
     
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
+
+    // 3. Initiate and create the scheduler and clock processes.
+    CreateScheduler(count,ChosenAlgorithm,Quantum);
+   
     // To get time use this
     int x = getClk() ;
 
