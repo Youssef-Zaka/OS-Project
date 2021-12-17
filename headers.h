@@ -668,7 +668,7 @@ void CalculatePerfs(MyProcess **PCB, int N)
     }
     float CPU_Util = (float)((float)(TotalTime - WastedTime) / TotalTime) * 100;
     float AvgWTA = SumWTA / N;
-    float AvgWait = SumWait / N;
+    float AvgWait = (float)SumWait / N;
 
     float SumStdDiv = 0;
     for (int i = 0; i < N; i++)
