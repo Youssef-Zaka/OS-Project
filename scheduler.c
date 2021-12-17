@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            HPF(&Q, f, PCB, &Index);
+            HPF(&Q, f);
             break;
         case 2:
             SRTN(&Q, &CurrentP, &CurrentRemaining, f, &signalPid);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
                 sleep(1);
                 break;
             }
-            HPF(&Q, f, PCB, &Index);
+            HPF(&Q, f);
             break;
         case 5:
             if (isEmpty(Q))
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            HPF(&Q, f, PCB, &Index);
+            HPF(&Q, f);
             break;
 
         default:

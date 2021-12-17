@@ -15,6 +15,8 @@ int main(int argc, char *argv[])
     signal(SIGCHLD, clearResources);
 
     
+
+    
     // TODO Initialization
     // 1. Read the input files.
     FILE *fp;
@@ -37,24 +39,7 @@ int main(int argc, char *argv[])
 
     MyProcess procs[count];
 
-    rewind(fp);
-    fscanf(fp, "%*[^\n]\n"); //skip first line
-
-    for (int i = 0; i < count; i++)
-    {
-        int nums[4];
-        for (int j = 0; j < 4; j++)
-        {
-            fscanf(fp, "%d", &nums[j]);
-        }
-        procs[i].ID = nums[0];
-        procs[i].Arrival = nums[1];
-        procs[i].RunTime = nums[2];
-        procs[i].Priority = nums[3];
-
-        //printf("%d %d %d %d\n", procs[i].ID,procs[i].Arrival, procs[i].RunTime ,procs[i].Priority);
-
-    }
+    ReadFromFile(procs,count,fp);
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
     int ChosenAlgorithm = 0;
