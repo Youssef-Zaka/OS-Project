@@ -112,7 +112,7 @@ const int MAX_PRIORITY = 999;
 typedef struct Qnode
 {
 
-    MyProcess *process;
+    MyProcess *process; //here we edited the value from int to MyPrcess*
     struct Qnode *next;
     int prty;
 
@@ -121,7 +121,7 @@ typedef struct Qnode
 typedef struct Queue
 {
 
-    QnodePtr top;
+    QnodePtr top; //head
     QnodePtr tail;
 
 } Queuetype, *Queue;
@@ -132,7 +132,7 @@ void enqueue(Queue q, MyProcess *process);
 void pEnqueue(Queue q, MyProcess *process, int prty);
 MyProcess *dequeue(Queue q);
 
-Queue initQueue()
+Queue initQueue() //allocates memory for the queue
 {
     Queue newQueue = malloc(sizeof(Queuetype));
     newQueue->top = NULL;
@@ -145,7 +145,7 @@ int isEmpty(Queue q)
     return q->top == NULL;
 }
 
-void enqueue(Queue q, MyProcess *process)
+void enqueue(Queue q, MyProcess *process) //normal enqueue adds to the end of the queue
 {
     QnodePtr newNode = malloc(sizeof(Qnode));
     newNode->process = process;
@@ -164,7 +164,7 @@ void enqueue(Queue q, MyProcess *process)
     }
 }
 
-void pEnqueue(Queue q, MyProcess *process, int prty)
+void pEnqueue(Queue q, MyProcess *process, int prty) //Priority Enqueue where it has been edited so that lower values have higher priority
 {
 
     QnodePtr newNode = malloc(sizeof(Qnode));
@@ -200,7 +200,7 @@ void pEnqueue(Queue q, MyProcess *process, int prty)
     }
 }
 
-MyProcess *dequeue(Queue q)
+MyProcess *dequeue(Queue q) //takes the head of the queue changes the head to the next node
 {
     QnodePtr temp = q->top;
     MyProcess *tempNum = q->top->process;
@@ -410,24 +410,25 @@ void HPF(Queue *Q, FILE *f)
 
 void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
 {
-    if ((!isEmpty(*Q) && (*CurrentP) != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining))
+    //We enter this If when a process has just arrived and its RunTime is less than the Remaining Time of the current process 
+    if ((!isEmpty(*Q) && (*CurrentP) != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining)) 
     {
-        (*CurrentP)->StoppedAt = getClk();
+        (*CurrentP)->StoppedAt = getClk(); //We save the time it stopped here to calculate its wait later
         kill((*CurrentP)->PID, SIGSTOP);
         fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                 (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
         printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
-        (*CurrentP)->Status = Ready;
-        *CurrentRemaining = (*Q)->top->process->RemainingTime;
+        (*CurrentP)->Status = Ready; //Ready to be run again
+        *CurrentRemaining = (*Q)->top->process->RemainingTime; //set the Remaining time of the running process to the new process
 
         MyProcess *NewP = dequeue(*Q);
-        pEnqueue(*Q, (*CurrentP), (*CurrentP)->RemainingTime);
-        (*CurrentP) = NewP;
+        pEnqueue(*Q, (*CurrentP), (*CurrentP)->RemainingTime); //Priority queue with the remaining time as the priority
+        (*CurrentP) = NewP; //sets the current process to the new process
         (*CurrentP)->RemainingTime = (*CurrentP)->RunTime;
         (*CurrentP)->Status = Running;
         int pid = fork();
-        if (pid == 0)
+        if (pid == 0) //create process
         {
             char RemainingTime[20];
             char ProcessID[20];
@@ -449,21 +450,24 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
 
         fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                 (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
-        sleep(1);
+
+        sleep(1); //sleep for a cycle then decrement the Remaining time by 1
         (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
         *CurrentRemaining = (*CurrentP)->RemainingTime;
     }
+    //If no process is running
     else if ((*CurrentP) == NULL)
     {
         if (!isEmpty(*Q))
         {
             (*CurrentP) = dequeue(*Q);
+            //If to know whether it was a stopped process or one that just arrived
             if ((*CurrentP)->Status == NotCreated)
             {
                 (*CurrentP)->RemainingTime = (*CurrentP)->RunTime;
                 (*CurrentP)->Status = Running;
                 int pid = fork();
-                if (pid == 0)
+                if (pid == 0) //create process
                 {
                     char RemainingTime[20];
                     char ProcessID[20];
@@ -484,12 +488,11 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                        (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                         (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
-                sleep(1);
-                //printf("Current P is now : %d \n", (*CurrentP)->ID);
+                sleep(1); //sleep for a cycle then decrement the Remaining time by 1
                 (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
                 *CurrentRemaining = (*CurrentP)->RemainingTime;
             }
-            else if ((*CurrentP)->Status == Ready)
+            else if ((*CurrentP)->Status == Ready) //If it was a stopped function
             {
                 kill((*CurrentP)->PID, SIGCONT);
                 (*CurrentP)->Wait += getClk() - (*CurrentP)->StoppedAt;
@@ -497,30 +500,34 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                         (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
                 printf("At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                        (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
-                sleep(1);
+                sleep(1); //sleep for a cycle then decrement the Remaining time by 1
                 (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
                 *CurrentRemaining = (*CurrentP)->RemainingTime;
-                if (*CurrentRemaining == 0)
+
+                if (*CurrentRemaining == 0) //this condition is mainly here for the last process to make sure we dont exit the scheduler before printing that it finished
                     sleep(1);
             }
         }
+        //If there's nothing to run sleep a cycle
         else
         {
             sleep(1);
         }
     }
+    //If the arrived process' Run Time > Current Remaining Time
     else
     {
-        sleep(1);
+        sleep(1); //sleep for a cycle then decrement the Remaining time by 1
         (*CurrentP)->RemainingTime = (*CurrentP)->RemainingTime - 1;
         *CurrentRemaining = (*CurrentP)->RemainingTime;
     }
 
+    //When a proces terminates
     if (*signalPid)
     {
         (*CurrentP)->Status = Finished;
         (*CurrentP)->RemainingTime = 0;
-        *CurrentRemaining = __INT_MAX__;
+        *CurrentRemaining = __INT_MAX__; // to enter the next if condition
         (*CurrentP)->TA = getClk() - (*CurrentP)->Arrival;
         (*CurrentP)->WTA = ((float)getClk() - (float)(*CurrentP)->Arrival) / (float)(*CurrentP)->RunTime;
         fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival,
