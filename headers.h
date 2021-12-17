@@ -402,8 +402,8 @@ void HPF(Queue *Q, FILE *f)
 
 void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
 {
-    //We enter this If when a process has just arrived and its RunTime is less than the Remaining Time of the current process 
-    if ((!isEmpty(*Q) && (*CurrentP) != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining)) 
+    //We enter this If when a process has just arrived and its RunTime is less than the Remaining Time of the current process
+    if ((!isEmpty(*Q) && (*CurrentP) != NULL) && ((*Q)->top->process->RemainingTime < *CurrentRemaining))
     {
         (*CurrentP)->StoppedAt = getClk(); //We save the time it stopped here to calculate its wait later
         kill((*CurrentP)->PID, SIGSTOP);
@@ -411,22 +411,20 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                 (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
         printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), (*CurrentP)->ID, (*CurrentP)->Arrival, (*CurrentP)->RunTime,
                (*CurrentP)->RemainingTime, (*CurrentP)->Wait);
-        (*CurrentP)->Status = Ready; //Ready to be run again
+        (*CurrentP)->Status = Ready;                           //Ready to be run again
         *CurrentRemaining = (*Q)->top->process->RemainingTime; //set the Remaining time of the running process to the new process
 
         MyProcess *NewP = dequeue(*Q);
         pEnqueue(*Q, (*CurrentP), (*CurrentP)->RemainingTime); //Priority queue with the remaining time as the priority
-        (*CurrentP) = NewP; //sets the current process to the new process
+        (*CurrentP) = NewP;                                    //sets the current process to the new process
         (*CurrentP)->RemainingTime = (*CurrentP)->RunTime;
         (*CurrentP)->Status = Running;
         int pid = fork();
         if (pid == 0) //create process
         {
             char RemainingTime[20];
-            char ProcessID[20];
-            sprintf(ProcessID, "%d", (*CurrentP)->ID);
             sprintf(RemainingTime, "%d", (*CurrentP)->RemainingTime);
-            char *arguments[] = {"process.out", RemainingTime, ProcessID, NULL};
+            char *arguments[] = {"process.out", RemainingTime, NULL};
             int isFailure = execv("process.out", arguments);
             if (isFailure)
             {
@@ -462,10 +460,8 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                 if (pid == 0) //create process
                 {
                     char RemainingTime[20];
-                    char ProcessID[20];
-                    sprintf(ProcessID, "%d", (*CurrentP)->ID);
                     sprintf(RemainingTime, "%d", (*CurrentP)->RemainingTime);
-                    char *arguments[] = {"process.out", RemainingTime, ProcessID, NULL};
+                    char *arguments[] = {"process.out", RemainingTime, NULL};
                     int isFailure = execv("process.out", arguments);
                     if (isFailure)
                     {
@@ -549,13 +545,9 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
                     p->RemainingTime, p->Wait);
             if (pid == 0)
             {
-                char SchedulerPid[20];
                 char RemainingTime[20];
-                char ProcessID[20];
-                sprintf(SchedulerPid, "%d", getpid());
-                sprintf(ProcessID, "%d", p->ID);
                 sprintf(RemainingTime, "%d", p->RemainingTime);
-                char *arguments[] = {"process.out", RemainingTime, SchedulerPid, ProcessID, NULL};
+                char *arguments[] = {"process.out", RemainingTime, NULL};
                 printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                        p->RemainingTime, p->Wait);
                 int isFailure = execv("process.out", arguments);
