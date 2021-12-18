@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
                 perror("Error in send");
             Iteration++;   
         }
-        if(isFirstSent) sleep(1);
+        if(isFirstSent) sleep(0.8);
         x = getClk();
     }
     //sleep untill scheduler exits
