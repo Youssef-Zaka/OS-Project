@@ -1,138 +1,98 @@
 #include "headers.h"
 
+
+//Functions
 void clearResources(int);
 
+
+//Message queue ID 
 int msgqid_id;
 
 int main(int argc, char *argv[])
 {
+    //set handlers
     signal(SIGINT, clearResources);
+    signal(SIGCHLD, clearResources);
+
+    
+
+    
     // TODO Initialization
     // 1. Read the input files.
     FILE *fp;
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
 
-    int count = -1; // for getting num of lines
-    char c;
-
+    int count = 0; // for getting num of processes
+    
+    //open file stream
     fp = fopen("processes.txt", "r");
     if (fp == NULL)
-        exit(EXIT_FAILURE);
+        exit(-1);
+    //Char array that fgets read into
+    char ProcessLine[100]; 
 
-    for (c = getc(fp); c != EOF; c = getc(fp))
-    {
-        if (c == '\n') // Increment count if this character is newline
-            count += 1;
-    }
+    //id is used to check if the process line has a correct id or not, if yes, count++
+    int id = 0;
+    while ( fgets( ProcessLine, 100, fp ) != NULL ) 
+    { 
+        // skip lines starting with #
+        if(ProcessLine[0] != '#') // only incremenet count if line starts with the correct ID
+        if (atoi(&ProcessLine[0]) - 1 == id )
+        {
+        count += 1;
+        id += 1;
+        }
+    } 
 
     MyProcess procs[count];
 
-    rewind(fp);
-    fscanf(fp, "%*[^\n]\n");
-
-    for (int i = 0; i < count; i++)
-    {
-        int nums[4];
-        for (int j = 0; j < 4; j++)
-        {
-            fscanf(fp, "%d", &nums[j]);
-        }
-        procs[i].ID = nums[0];
-        procs[i].Arrival = nums[1];
-        procs[i].RunTime = nums[2];
-        procs[i].Priority = nums[3];
-
-        //printf("%d %d %d %d\n", procs[i].ID,procs[i].Arrival, procs[i].RunTime ,procs[i].Priority);
-
-    }
+    ReadFromFile(procs,count,fp);
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
     int ChosenAlgorithm = 0;
-    printf("1-HPF   2-SRTN  3-RR \n");
-    printf("Choose The Desired Scheduling Algorith(1,2,3):  ");
-    scanf("%d", &ChosenAlgorithm);
-    while (ChosenAlgorithm != 1 && ChosenAlgorithm != 2 && ChosenAlgorithm != 3)
-    {
-        printf("Incorrect input, please choose between 1 ,2 and 3: ");
-        scanf("%d", &ChosenAlgorithm);
-    }
-    printf("\n");
-
-    // 3. Initiate and create the scheduler and clock processes.
-    // fork a child, then call execv to replace this child with a clock process
-    int pid = fork();
-    if (pid == 0)
-    {
-        //execv argv , a null terminated list of strings
-        char *arguments[] = {"clk.out", NULL};
-        int isFailure = execv("clk.out", arguments);
-        if (isFailure)
-        {
-            printf("Error No: %d", errno);
-            exit(-1);
-        }
-    }
-    // fork a child, then call execv to replace this child with a scheduler process
-    pid = fork();
-    if (pid == 0)
-    {
-        // execv argv , a null terminated list of strings
-        char n[GetDigitsOfInt(count)];
-        sprintf(n, "%d", count);
-        char *arguments[] = {"scheduler.out",n,NULL};
-        // printf("\nArg sent is : %s", n);
-        int isFailure = execv("scheduler.out", arguments);
-        if (isFailure)
-        {
-            printf("Error No: %d \n", errno);
-            exit(-1);
-        }
-    }
-
+    int Quantum = 0;
+    GetChosenAlgo(&ChosenAlgorithm,&Quantum);
+    CreateClock();
+    
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
+
+    // 3. Initiate and create the scheduler and clock processes.
+    CreateScheduler(count,ChosenAlgorithm,Quantum);
+   
     // To get time use this
-    int x = getClk();
-    printf("current time is %d\n", x);
+    int x = getClk() ;
 
-    
-    // TODO Generation Main Loop
-    // 5. Create a data structure for processes and provide it with its parameters.
-    // 6. Send the information to the scheduler at the appropriate time.
-
+    //Create Message Queue, and any needed initializations
     int sendval, recval;
-
     msgqid_id = msgget(qid , 0644 | IPC_CREAT);
-
     if(msgqid_id == -1)
     {
         perror("Error in creating queue");
         exit(-1);
     }
-
     int Iteration =0;
+    // TODO Generation Main Loop
+    // 5. Create a data structure for processes and provide it with its parameters.
+    // 6. Send the information to the scheduler at the appropriate time. 
+
+    bool isFirstSent = false;
     while(Iteration < count)
     {
-        while (procs[Iteration].Arrival == x && Iteration < count)
+        while (Iteration < count && procs[Iteration].Arrival <= x)
         {
-            printf("Clock is %d\n",x);
+            // printf("Clock is %d\n",x);
             sendval = msgsnd(msgqid_id, &procs[Iteration] , sizeof(procs[Iteration]) , !IPC_NOWAIT);
-
+            if(!isFirstSent) isFirstSent = true;
             if(sendval == -1)
                 perror("Error in send");
             Iteration++;   
         }
+        if(isFirstSent) sleep(0.8);
         x = getClk();
-        
     }
-    
-    
-
-
-    // 7. Clear clock resources
-    destroyClk(true);
+    //sleep untill scheduler exits
+    sleep(__INT_MAX__);
+    return(0);
 }
 
 void clearResources(int signum)
@@ -142,3 +102,4 @@ void clearResources(int signum)
     destroyClk(true);
     exit(0);
 }
+
