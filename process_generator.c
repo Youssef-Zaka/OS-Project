@@ -21,18 +21,27 @@ int main(int argc, char *argv[])
     // 1. Read the input files.
     FILE *fp;
 
-    int count = -1; // for getting num of lines
-    char c;
-
+    int count = 0; // for getting num of processes
+    
+    //open file stream
     fp = fopen("processes.txt", "r");
     if (fp == NULL)
-        exit(EXIT_FAILURE);
+        exit(-1);
+    //Char array that fgets read into
+    char ProcessLine[100]; 
 
-    for (c = getc(fp); c != EOF; c = getc(fp))
-    {
-        if (c == '\n') // Increment count if this character is newline
-            count += 1;
-    }
+    //id is used to check if the process line has a correct id or not, if yes, count++
+    int id = 0;
+    while ( fgets( ProcessLine, 100, fp ) != NULL ) 
+    { 
+        // skip lines starting with #
+        if(ProcessLine[0] != '#') // only incremenet count if line starts with the correct ID
+        if (atoi(&ProcessLine[0]) - 1 == id )
+        {
+        count += 1;
+        id += 1;
+        }
+    } 
 
     MyProcess procs[count];
 
