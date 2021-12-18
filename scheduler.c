@@ -94,7 +94,49 @@ int main(int argc, char *argv[])
         }
 
         //recieve all other processes that arrived, enqueue them.
-        RecieveProcess(&Q, proc, recval, msgqid_id, ChosenAlgorithm, PCB, &countRecieved);
+
+        while (recval != -1)
+    {
+        MyProcess *P = malloc(sizeof(MyProcess));
+        proc.Status = NotCreated;
+        P->ID = proc.ID;
+        P->Arrival = proc.Arrival;
+        P->PID = proc.PID;
+        P->Priority = proc.Priority;
+        P->RemainingTime = proc.RunTime;
+        P->RunTime = proc.RunTime;
+        P->Status = proc.Status;
+        P->StartTime = proc.StartTime;
+        P->Wait = 0;
+        P->TA = 0;
+        P->WTA = 0;
+        PCB[proc.ID - 1] = P;
+        countRecieved = countRecieved + 1;
+        switch (ChosenAlgorithm)
+        {
+        case 1:
+            pEnqueue(Q, P, P->Priority);
+            break;
+        case 2:
+            pEnqueue(Q, P, P->RunTime);
+            break;
+        case 3:
+            enqueue(Q, P);
+            break;
+        case 4:
+            enqueue(Q, P);
+            break;
+        case 5:
+            pEnqueue(Q, P, P->RunTime);
+            break;
+
+        default:
+            break;
+        }
+        recval = msgrcv(msgqid_id, &proc, sizeof(proc), 0, IPC_NOWAIT);
+    }
+
+        //RecieveProcess(&Q, proc, recval, msgqid_id, ChosenAlgorithm, PCB, &countRecieved);
 
         switch (ChosenAlgorithm)
         {
