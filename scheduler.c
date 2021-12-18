@@ -6,7 +6,6 @@ Queue Q;
 Queue RRQ;
 int signalPid = 0;
 int signalID = 0;
-int Index = 1;
 int countFinished = 0;
 int ProcNum;
 void EndOfProcess(int sig, siginfo_t *info, void *context)
@@ -166,7 +165,7 @@ int main(int argc, char *argv[])
                     enqueue(Q, dequeue(RRQ));
                 }
             }
-            RR(&Q, &RRQ, f, Quantum, &Index, &signalPid);
+            RR(&Q, &RRQ, f, Quantum, &signalPid);
             break;
         case 4:
             if (isEmpty(Q))

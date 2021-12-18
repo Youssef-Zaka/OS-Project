@@ -220,7 +220,7 @@ void CreateScheduler(int, int, int);
 void ReadFromFile(MyProcess *procs, int count, FILE *fp)
 {
 
-    rewind(fp); // to start the file from the beginning 
+    rewind(fp); // to start the file from the beginning
     fscanf(fp, "%*[^\n]\n"); //skip first line
 
     for (int i = 0; i < count; i++)
@@ -236,7 +236,7 @@ void ReadFromFile(MyProcess *procs, int count, FILE *fp)
         (procs)[i].Priority = nums[3];
     }
 }
-void GetChosenAlgo(int *Algo, int *Q) // to ge the chosen algorithm from the user  
+void GetChosenAlgo(int *Algo, int *Q) // to ge the chosen algorithm from the user
 {
 
     int ChosenAlgorithm = 0;
@@ -314,7 +314,7 @@ void CreateScheduler(int count, int ChosenAlgorithm, int Quantum)
 void RecieveProcess(Queue *, MyProcess, int, int, int, MyProcess **, int *);
 void HPF(Queue *, FILE *);
 void SRTN(Queue *, MyProcess **, int *, FILE *, int *);
-void RR(Queue *, Queue *, FILE *, int, int *, int *);
+void RR(Queue *, Queue *, FILE *, int, int *);
 void CalculatePerfs(MyProcess **, int);
 
 // EDIT: REMOVE ALREADY USED IN SCHEDULER.C
@@ -322,7 +322,7 @@ void CalculatePerfs(MyProcess **, int);
 // {
 //     while (recval != -1)
 //     {
-//         // Setting process data in the PCB 
+//         // Setting process data in the PCB
 //         MyProcess *P = malloc(sizeof(MyProcess));
 //         proc.Status = NotCreated;
 //         P->ID = proc.ID;
@@ -359,7 +359,7 @@ void CalculatePerfs(MyProcess **, int);
 //         default:
 //             break;
 //         }
-//         // for the case for more than 1 arrival at the same time step 
+//         // for the case for more than 1 arrival at the same time step
 //         recval = msgrcv(msgq_id, &proc, sizeof(proc), 0, IPC_NOWAIT);
 //     }
 //     return;
@@ -377,7 +377,7 @@ void HPF(Queue *Q, FILE *f) // File and Queue are inputs
 	fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
             Process->RemainingTime, Process->Wait);//file print
     int pid = fork();
-    
+
 
     if (pid == 0)
     {
@@ -386,7 +386,7 @@ void HPF(Queue *Q, FILE *f) // File and Queue are inputs
         char *arguments[] = {"process.out", RemainingTime, NULL};
         printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
                Process->RemainingTime, Process->Wait);
-        int isFailure = execv("process.out", arguments); //Making copy of schedular  and replace it with a process                                                   
+        int isFailure = execv("process.out", arguments); //Making copy of schedular  and replace it with a process
         if (isFailure)
         {
             printf("Error No: %d \n", errno);
@@ -531,25 +531,25 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
     }
 }
 
-void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
+void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
 {
+    //If the queue is not empty, dequeue the process that is in the end of the queue to run
     if (!isEmpty(*Q))
     {
         MyProcess *p = dequeue(*Q);
-        *Index = p->ID;
-        if (p->Status == NotCreated)
+        if (p->Status == NotCreated) //If we get a new process
         {
-            p->RemainingTime = p->RunTime;
-            p->Status = Running;
-            p->StartTime = getClk();
+            p->RemainingTime = p->RunTime; //Set it's reamining time with the current run time
+            p->Status = Running; //Change it's status to running
+            p->StartTime = getClk(); //Setting its starting time with the current time
             int pid = fork();
             p->PID = pid;
-            p->Wait = p->StartTime - p->Arrival;
+            p->Wait = p->StartTime - p->Arrival; //Get the Wait of the process
             fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                     p->RemainingTime, p->Wait);
             if (pid == 0)
             {
-                char RemainingTime[20];
+                char RemainingTime[20]; //Char array to send remaning time
                 sprintf(RemainingTime, "%d", p->RemainingTime);
                 char *arguments[] = {"process.out", RemainingTime, NULL};
                 printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
@@ -561,29 +561,29 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
                     exit(-1);
                 }
             }
-            sleep(Quantum);
-            p->RemainingTime -= Quantum;
-            if (p->RemainingTime > 0)
+            sleep(Quantum); //Sleep a quantum of time or till the process finishes
+            p->RemainingTime -= Quantum; //Setting the remaining time of the process after working for a qantum of time
+            if (p->RemainingTime > 0) //If the process did't finish
             {
                 kill(p->PID, SIGSTOP);
             }
-            else if (*signalPid == 0)
+            else if (*signalPid == 0) //If the process hasn't finished, let it finish
             {
                 sleep(__INT_MAX__);
                 p->Status = Finished;
             }
-            if (*signalPid)
+            if (*signalPid) //If the process finished
             {
                 p->Status = Finished;
-                p->TA = getClk() - p->Arrival;
-                p->WTA = ((float)getClk() - (float)p->Arrival) / (float)p->RunTime;
+                p->TA = getClk() - p->Arrival; //Calculating the turnaround time
+                p->WTA = ((float)getClk() - (float)p->Arrival) / (float)p->RunTime; //Calculating the weighted turnaround time
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
                         p->RunTime, 0, p->Wait, p->TA, p->WTA);
                 printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
                        p->RunTime, 0, p->Wait, p->TA, p->WTA);
             }
             else
-            {
+            { //If the process didn't finish, Set it's status to ready, and save the time it stopped at
                 p->Status = Ready;
                 p->StoppedAt = getClk();
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
@@ -591,34 +591,34 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
                 printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                        p->RemainingTime, p->Wait);
             }
-            *signalPid = 0;
-            if (p->Status != Finished)
+            *signalPid = 0; //Reset signal pid
+            if (p->Status != Finished) //If the status os the process is not Finished, enqueue it in the second queue (RRQ), to run with the other processes in the right order
             {
                 kill(p->PID, SIGSTOP);
                 enqueue(*RRQ, p);
             }
         }
         else
-        {
-            p->Status = Running;
-            p->Wait += getClk() - p->StoppedAt;
+        { //If we get a process that was already created before
+            p->Status = Running; //Set it's status to running
+            p->Wait += getClk() - p->StoppedAt; //Calculate it's waiting time
             fprintf(f, "At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                     p->RemainingTime, p->Wait);
             printf("At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                    p->RemainingTime, p->Wait);
             kill(p->PID, SIGCONT);
-            sleep(Quantum);
-            p->RemainingTime -= Quantum;
-            if (p->RemainingTime > 0)
+            sleep(Quantum); //Sleep a quantum of time or till the process finishes
+            p->RemainingTime -= Quantum; //Setting the remaining time of the process after working for a qantum of time
+            if (p->RemainingTime > 0) //If the process did't finish
             {
                 kill(p->PID, SIGSTOP);
             }
-            else if (*signalPid == 0)
+            else if (*signalPid == 0) //If the process hasn't finished, let it finish
             {
                 sleep(__INT_MAX__);
                 p->Status = Finished;
             }
-            if (*signalPid)
+            if (*signalPid) //If the process finished
             {
                 p->Status = Finished;
                 p->TA = getClk() - p->Arrival;
@@ -630,10 +630,10 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *Index, int *signalPid)
             }
             else
             {
-                p->Status = Ready;
+                p->Status = Ready; //If the process didn't finish, Set it's status to ready
             }
-            *signalPid = 0;
-            if (p->Status != Finished)
+            *signalPid = 0; //Reset signal pid
+            if (p->Status != Finished) //If the status os the process is not Finished, enqueue it in the second queue (RRQ), to run with the other processes in the right order
             {
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                         p->RemainingTime, p->Wait);
