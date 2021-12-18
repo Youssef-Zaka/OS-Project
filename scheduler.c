@@ -22,12 +22,14 @@ int main(int argc, char *argv[])
 {
     //Signal Action handler
     struct sigaction sa;
+    // SA_NOCLDSTOP will make the sigchld called only upon termination
+    // SA_SIGINFO used to get the process ID upon termination
     sa.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
     sa.sa_sigaction = EndOfProcess;
     sigaction(SIGCHLD, &sa, NULL);
 
     int msgqid_id, recval, sendval;
-
+    // create msg queue 
     msgqid_id = msgget(qid, 0644 | IPC_CREAT);
     if (msgqid_id == -1)
     {
@@ -114,19 +116,19 @@ int main(int argc, char *argv[])
         countRecieved = countRecieved + 1;
         switch (ChosenAlgorithm)
         {
-        case 1:
+        case 1: // For HPF
             pEnqueue(Q, P, P->Priority);
             break;
-        case 2:
+        case 2:// For SRTN
             pEnqueue(Q, P, P->RunTime);
             break;
-        case 3:
+        case 3:// For RR
             enqueue(Q, P);
             break;
-        case 4:
+        case 4:// For FCFS
             enqueue(Q, P);
             break;
-        case 5:
+        case 5: // For SJF
             pEnqueue(Q, P, P->RunTime);
             break;
 
@@ -141,7 +143,7 @@ int main(int argc, char *argv[])
         switch (ChosenAlgorithm)
         {
         case 1:
-            if (isEmpty(Q))
+            if (isEmpty(Q)) // if queue is empty -> check after 1 sec for new events 
             {
                 sleep(1);
                 break;
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
                 sleep(1);
                 break;
             }
-            HPF(&Q, f);
+            HPF(&Q, f); // HPF and FCFS and SJF are non-premitive -> can be implemented using 1 function only 
             break;
         case 5:
             if (isEmpty(Q))
