@@ -76,6 +76,7 @@ typedef enum status
     Finished
 } status;
 
+
 //Data structure for process
 typedef struct MyProcess
 {
@@ -92,6 +93,8 @@ typedef struct MyProcess
     float WTA;
     //Used to calculate Wait time
     int StoppedAt;
+    int MemSize;
+    int index;
 } MyProcess;
 
 //Message buffer used for IPC
@@ -225,8 +228,8 @@ void ReadFromFile(MyProcess *procs, int count, FILE *fp)
 
     for (int i = 0; i < count; i++)
     {
-        int nums[4];
-        for (int j = 0; j < 4; j++)
+        int nums[5];
+        for (int j = 0; j < 5; j++)
         {
             fscanf(fp, "%d", &nums[j]);
         }
@@ -234,6 +237,7 @@ void ReadFromFile(MyProcess *procs, int count, FILE *fp)
         (procs)[i].Arrival = nums[1];
         (procs)[i].RunTime = nums[2];
         (procs)[i].Priority = nums[3];
+        (procs)[i].MemSize = nums[4];
     }
 }
 void GetChosenAlgo(int *Algo, int *Q) // to ge the chosen algorithm from the user
@@ -316,54 +320,6 @@ void HPF(Queue *, FILE *);
 void SRTN(Queue *, MyProcess **, int *, FILE *, int *);
 void RR(Queue *, Queue *, FILE *, int, int *);
 void CalculatePerfs(MyProcess **, int);
-
-// EDIT: REMOVE ALREADY USED IN SCHEDULER.C
-// void RecieveProcess(Queue *Q, MyProcess proc, int recval, int msgq_id, int ChosenAlgorithm, MyProcess **PCB, int *countRecieved)
-// {
-//     while (recval != -1)
-//     {
-//         // Setting process data in the PCB
-//         MyProcess *P = malloc(sizeof(MyProcess));
-//         proc.Status = NotCreated;
-//         P->ID = proc.ID;
-//         P->Arrival = proc.Arrival;
-//         P->PID = proc.PID;
-//         P->Priority = proc.Priority;
-//         P->RemainingTime = proc.RunTime;
-//         P->RunTime = proc.RunTime;
-//         P->Status = proc.Status;
-//         P->StartTime = proc.StartTime;
-//         P->Wait = 0;
-//         P->TA = 0;
-//         P->WTA = 0;
-//         PCB[proc.ID - 1] = P;
-//         *countRecieved = *countRecieved + 1;
-//         switch (ChosenAlgorithm)
-//         {
-//         case 1: // for HPF
-//             pEnqueue(*Q, P, P->Priority);
-//             break;
-//         case 2: // for SRTN
-//             pEnqueue(*Q, P, P->RunTime);
-//             break;
-//         case 3: // for RR
-//             enqueue(*Q, P);
-//             break;
-//         case 4: // for FCFS
-//             enqueue(*Q, P);
-//             break;
-//         case 5: // for SJF
-//             pEnqueue(*Q, P, P->RunTime);
-//             break;
-
-//         default:
-//             break;
-//         }
-//         // for the case for more than 1 arrival at the same time step
-//         recval = msgrcv(msgq_id, &proc, sizeof(proc), 0, IPC_NOWAIT);
-//     }
-//     return;
-// }
 
 void HPF(Queue *Q, FILE *f) // File and Queue are inputs
 {
