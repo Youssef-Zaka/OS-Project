@@ -10,7 +10,7 @@ int countFinished = 0;
 int ProcNum;
 
 
-int memSizes[8] = {2,4,8,16,32,64,128,256};
+int memSizes[9] = {2,4,8,16,32,64,128,256,512};
 void EndOfProcess(int sig, siginfo_t *info, void *context)
 {
     signalPid = 0;
@@ -36,7 +36,7 @@ int CalculateSize(int memsize){
             return memSizes[i];
         }   
     }
-    return memSizes[7];
+    return memSizes[8];
 }
 
 
