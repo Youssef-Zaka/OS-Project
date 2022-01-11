@@ -22,6 +22,8 @@ typedef short bool;
 
 #define qid 60
 
+#define MEMSIZE 1024
+char memory[MEMSIZE]; //f = free, a = allocated
 ///==============================
 //don't mess with this variable//
 int *shmaddr; //
@@ -76,7 +78,6 @@ typedef enum status
     Finished
 } status;
 
-
 //Data structure for process
 typedef struct MyProcess
 {
@@ -95,6 +96,7 @@ typedef struct MyProcess
     int StoppedAt;
     int MemSize;
     int index;
+    int realMemSize;
 } MyProcess;
 
 //Message buffer used for IPC
@@ -103,6 +105,112 @@ struct msgbuff
     long mtype;
     MyProcess process;
 };
+
+//////MEMORY MANAGEMENT/////////////
+FILE *memf;
+
+void AllocateMem(MyProcess *P)
+{
+
+    //first get index of smalles space >= P.MemSize
+    int smallestSize = __INT_MAX__;
+    int smallestIndex = -1;
+    int emptyCount = 0;
+
+    for (int i = 0; i < MEMSIZE; i += P->MemSize)
+    {
+        bool found = true;
+        for (int j = i; j < P->MemSize; j++)
+        {
+            if (memory[j] == 'a')
+            {
+                found = false;
+            }
+        }
+        if (found)
+        {
+            if ((i!= 0 && memory[i + P->MemSize] == 'a'&& memory[i-1] == 'a') || (i == 0 && memory[i + P->MemSize] == 'a'))
+            {
+                smallestIndex = i;
+                printf("At\ttime\t%d\tallocated\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, smallestIndex, smallestIndex + P->MemSize - 1);
+                fprintf(memf, "At\ttime\t%d\tallocated\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, smallestIndex, smallestIndex + P->MemSize - 1);
+                P->index = smallestIndex;
+                for (int i = P->index; i < P->MemSize + P->index; i++)
+                {
+                    memory[i] = 'a';
+                }
+                return;
+            }
+            
+        }
+    }
+
+    for (int i = MEMSIZE - 1; i > 0; i -= P->MemSize)
+    {
+        int j = i;
+        while (j >= 0)
+        {
+
+            if (memory[j] == 'a' || j == 0)
+            {
+                if (emptyCount >= P->MemSize)
+                {
+                    if (emptyCount <= smallestSize)
+                    {
+                        smallestSize = emptyCount;
+                        if (j != 0)
+                        {
+                            smallestIndex = j + 1;
+                            //    printf("Smallest Index is %d\n",smallestIndex);
+                        }
+                        else
+                        {
+                            smallestIndex = 0;
+                        }
+                    }
+                }
+                // printf("empty Count = %d\n",emptyCount);
+
+                emptyCount == 0;
+                break;
+            }
+            emptyCount++;
+            j--;
+        }
+        emptyCount = 0;
+    }
+    if (P->MemSize < smallestIndex)
+    {
+        while (smallestIndex % P->MemSize)
+        {
+            smallestIndex++;
+        }
+    }
+    else if (smallestIndex != 0)
+    {
+        smallestIndex = P->MemSize;
+    }
+
+    printf("At\ttime\t%d\tallocated\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, smallestIndex, smallestIndex + P->MemSize - 1);
+    fprintf(memf, "At\ttime\t%d\tallocated\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, smallestIndex, smallestIndex + P->MemSize - 1);
+    P->index = smallestIndex;
+    for (int i = P->index; i < P->MemSize + P->index; i++)
+    {
+        memory[i] = 'a';
+    }
+    return;
+}
+
+void dAllocateMem(MyProcess *P)
+{
+    printf("At\ttime\t%d\tfreed\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, P->index, P->index + P->MemSize - 1);
+    fprintf(memf, "At\ttime\t%d\tfreed\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, P->index, P->index + P->MemSize - 1);
+
+    for (int i = P->index; i < P->index + P->MemSize; i++)
+    {
+        memory[i] = 'f';
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////
 //                      Queues & thier Functions
@@ -223,7 +331,7 @@ void CreateScheduler(int, int, int);
 void ReadFromFile(MyProcess *procs, int count, FILE *fp)
 {
 
-    rewind(fp); // to start the file from the beginning
+    rewind(fp);              // to start the file from the beginning
     fscanf(fp, "%*[^\n]\n"); //skip first line
 
     for (int i = 0; i < count; i++)
@@ -324,20 +432,19 @@ void CalculatePerfs(MyProcess **, int);
 void HPF(Queue *Q, FILE *f) // File and Queue are inputs
 {
 
-    MyProcess *Process = dequeue(*Q);//Dequeue process one by one Note:Pointer as it sended by reference
+    MyProcess *Process = dequeue(*Q); //Dequeue process one by one Note:Pointer as it sended by reference
 
-    Process->RemainingTime = Process->RunTime;//at first enter ,Remaining time =Runtime
+    Process->RemainingTime = Process->RunTime; //at first enter ,Remaining time =Runtime
     Process->Status = Running;
     Process->StartTime = getClk();
     Process->Wait += Process->StartTime - Process->Arrival;
-	fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
-            Process->RemainingTime, Process->Wait);//file print
+    fprintf(f, "At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
+            Process->RemainingTime, Process->Wait); //file print
     int pid = fork();
-
 
     if (pid == 0)
     {
-        char RemainingTime[20];//Var to get Remianing time of the process
+        char RemainingTime[20]; //Var to get Remianing time of the process
         sprintf(RemainingTime, "%d", Process->RemainingTime);
         char *arguments[] = {"process.out", RemainingTime, NULL};
         printf("At\ttime\t%d\tprocess\t%d\tstarted\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), Process->ID, Process->Arrival, Process->RunTime,
@@ -349,8 +456,8 @@ void HPF(Queue *Q, FILE *f) // File and Queue are inputs
             exit(-1);
         }
     }
-    Process->PID = pid;//Don't use unless for PCB
-    sleep(__INT_MAX__);// ^-^sleeping....until process end and send sigchild
+    Process->PID = pid; //Don't use unless for PCB
+    sleep(__INT_MAX__); // ^-^sleeping....until process end and send sigchild
     Process->Status = Finished;
     Process->TA = getClk() - Process->Arrival;
     Process->WTA = ((float)getClk() - (float)Process->Arrival) / (float)Process->RunTime;
@@ -358,6 +465,7 @@ void HPF(Queue *Q, FILE *f) // File and Queue are inputs
             Process->RunTime, 0, Process->Wait, Process->TA, Process->WTA);
     printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), Process->ID, Process->Arrival,
            Process->RunTime, 0, Process->Wait, Process->TA, Process->WTA);
+    dAllocateMem(Process);
 }
 
 void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *signalPid)
@@ -484,6 +592,7 @@ void SRTN(Queue *Q, MyProcess **CurrentP, int *CurrentRemaining, FILE *f, int *s
                (*CurrentP)->RunTime, 0, (*CurrentP)->Wait, (*CurrentP)->TA, (*CurrentP)->WTA);
         (*CurrentP) = NULL;
         *signalPid = 0;
+        dAllocateMem((*CurrentP));
     }
 }
 
@@ -496,8 +605,8 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
         if (p->Status == NotCreated) //If we get a new process
         {
             p->RemainingTime = p->RunTime; //Set it's reamining time with the current run time
-            p->Status = Running; //Change it's status to running
-            p->StartTime = getClk(); //Setting its starting time with the current time
+            p->Status = Running;           //Change it's status to running
+            p->StartTime = getClk();       //Setting its starting time with the current time
             int pid = fork();
             p->PID = pid;
             p->Wait = p->StartTime - p->Arrival; //Get the Wait of the process
@@ -517,9 +626,9 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
                     exit(-1);
                 }
             }
-            sleep(Quantum); //Sleep a quantum of time or till the process finishes
+            sleep(Quantum);              //Sleep a quantum of time or till the process finishes
             p->RemainingTime -= Quantum; //Setting the remaining time of the process after working for a qantum of time
-            if (p->RemainingTime > 0) //If the process did't finish
+            if (p->RemainingTime > 0)    //If the process did't finish
             {
                 kill(p->PID, SIGSTOP);
             }
@@ -531,12 +640,13 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
             if (*signalPid) //If the process finished
             {
                 p->Status = Finished;
-                p->TA = getClk() - p->Arrival; //Calculating the turnaround time
+                p->TA = getClk() - p->Arrival;                                      //Calculating the turnaround time
                 p->WTA = ((float)getClk() - (float)p->Arrival) / (float)p->RunTime; //Calculating the weighted turnaround time
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
                         p->RunTime, 0, p->Wait, p->TA, p->WTA);
                 printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
                        p->RunTime, 0, p->Wait, p->TA, p->WTA);
+                dAllocateMem(p);
             }
             else
             { //If the process didn't finish, Set it's status to ready, and save the time it stopped at
@@ -547,7 +657,7 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
                 printf("At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                        p->RemainingTime, p->Wait);
             }
-            *signalPid = 0; //Reset signal pid
+            *signalPid = 0;            //Reset signal pid
             if (p->Status != Finished) //If the status os the process is not Finished, enqueue it in the second queue (RRQ), to run with the other processes in the right order
             {
                 kill(p->PID, SIGSTOP);
@@ -555,17 +665,17 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
             }
         }
         else
-        { //If we get a process that was already created before
-            p->Status = Running; //Set it's status to running
+        {                                       //If we get a process that was already created before
+            p->Status = Running;                //Set it's status to running
             p->Wait += getClk() - p->StoppedAt; //Calculate it's waiting time
             fprintf(f, "At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                     p->RemainingTime, p->Wait);
             printf("At\ttime\t%d\tprocess\t%d\tresumed\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,
                    p->RemainingTime, p->Wait);
             kill(p->PID, SIGCONT);
-            sleep(Quantum); //Sleep a quantum of time or till the process finishes
+            sleep(Quantum);              //Sleep a quantum of time or till the process finishes
             p->RemainingTime -= Quantum; //Setting the remaining time of the process after working for a qantum of time
-            if (p->RemainingTime > 0) //If the process did't finish
+            if (p->RemainingTime > 0)    //If the process did't finish
             {
                 kill(p->PID, SIGSTOP);
             }
@@ -583,12 +693,14 @@ void RR(Queue *Q, Queue *RRQ, FILE *f, int Quantum, int *signalPid)
                         p->RunTime, 0, p->Wait, p->TA, p->WTA);
                 printf("At\ttime\t%d\tprocess\t%d\tfinished\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\t\n", getClk(), p->ID, p->Arrival,
                        p->RunTime, 0, p->Wait, p->TA, p->WTA);
+
+                dAllocateMem(p);
             }
             else
             {
                 p->Status = Ready; //If the process didn't finish, Set it's status to ready
             }
-            *signalPid = 0; //Reset signal pid
+            *signalPid = 0;            //Reset signal pid
             if (p->Status != Finished) //If the status os the process is not Finished, enqueue it in the second queue (RRQ), to run with the other processes in the right order
             {
                 fprintf(f, "At\ttime\t%d\tprocess\t%d\tstopped\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\t\n", getClk(), p->ID, p->Arrival, p->RunTime,

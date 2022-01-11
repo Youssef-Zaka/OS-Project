@@ -8,6 +8,9 @@ int signalPid = 0;
 int signalID = 0;
 int countFinished = 0;
 int ProcNum;
+
+
+int memSizes[8] = {2,4,8,16,32,64,128,256};
 void EndOfProcess(int sig, siginfo_t *info, void *context)
 {
     signalPid = 0;
@@ -17,6 +20,31 @@ void EndOfProcess(int sig, siginfo_t *info, void *context)
         countFinished++;
     }
 }
+
+
+
+
+
+//Memory Functions 
+
+
+int CalculateSize(int memsize){
+    for (int i = 0; i < 8; i++)
+    {
+        if (memsize <= memSizes[i])
+        {
+            return memSizes[i];
+        }   
+    }
+    return memSizes[7];
+}
+
+
+
+
+
+
+////////////////////////
 int main(int argc, char *argv[])
 {
     //Signal Action handler
@@ -59,13 +87,24 @@ int main(int argc, char *argv[])
     //Open output file stream
     FILE *f;
     f = fopen("scheduler.log", "w");
+    memf =  fopen("memory.log", "w");
     //First comment in the log file
     fprintf(f, "#At\ttime\tx\tprocess\ty\tstate\tarr\tw\ttotal\tz\tremain\ty\twait\tk\n");
+    fprintf(memf, "#At\ttime\tx\tallocated\ty\tbytes\tfor\tprocess\tz\tfrom\ti\tto\tj\n");
 
     //Remaining time of the running process, used In SRTN
     int CurrentRemaining = __INT_MAX__;
     //The running process, used in SRTN
     MyProcess *CurrentP = NULL;
+
+  
+    for (int i = 0; i < MEMSIZE; i++)
+    {
+        memory[i] = 'f';
+    }
+
+    
+    
 
     //initialize clock
     initClk();
@@ -90,6 +129,7 @@ int main(int argc, char *argv[])
         {
             CalculatePerfs(PCB,ProcNum);
             fclose(f);
+            fclose(memf);
             destroyClk(true);
             exit(0);
         }
@@ -113,6 +153,10 @@ int main(int argc, char *argv[])
         P->WTA = 0;
         PCB[proc.ID - 1] = P;
         countRecieved = countRecieved + 1;
+        P->realMemSize = proc.MemSize;
+        P->MemSize = CalculateSize(proc.MemSize);
+        P->index = -1;
+        AllocateMem(P);
         switch (ChosenAlgorithm)
         {
         case 1: // For HPF
@@ -195,3 +239,4 @@ int main(int argc, char *argv[])
     destroyClk(true);
     return 0;
 }
+
