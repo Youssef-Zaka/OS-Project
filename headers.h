@@ -117,34 +117,6 @@ void AllocateMem(MyProcess *P)
     int smallestIndex = -1;
     int emptyCount = 0;
 
-    for (int i = 0; i < MEMSIZE; i += P->MemSize)
-    {
-        bool found = true;
-        for (int j = i; j < P->MemSize; j++)
-        {
-            if (memory[j] == 'a')
-            {
-                found = false;
-            }
-        }
-        if (found)
-        {
-            if ((i!= 0 && memory[i + P->MemSize] == 'a'&& memory[i-1] == 'a') || (i == 0 && memory[i + P->MemSize] == 'a'))
-            {
-                smallestIndex = i;
-                printf("At\ttime\t%d\tallocated\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, smallestIndex, smallestIndex + P->MemSize - 1);
-                fprintf(memf, "At\ttime\t%d\tallocated\t%d\tbytes\tfor\tprocess\t%d\tfrom\t%d\tto\t%d\n", getClk(), P->realMemSize, P->ID, smallestIndex, smallestIndex + P->MemSize - 1);
-                P->index = smallestIndex;
-                for (int i = P->index; i < P->MemSize + P->index; i++)
-                {
-                    memory[i] = 'a';
-                }
-                return;
-            }
-            
-        }
-    }
-
     for (int i = MEMSIZE - 1; i > 0; i -= P->MemSize)
     {
         int j = i;
